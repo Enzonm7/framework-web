@@ -1,0 +1,5 @@
+node_modules
+Art/node_modules
+Art/dist
+.git
+.github
