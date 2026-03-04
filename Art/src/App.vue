@@ -1,5 +1,5 @@
 <script setup>
-import NavBar from './components/NavBar.vue';
+import HomeView from './views/HomeView.vue';
 </script>
 
 <template>
@@ -9,10 +9,11 @@ import NavBar from './components/NavBar.vue';
     <div class="wrapper">
       <HelloWorld msg="You did it!" />
     </div>
+    
   </header>
 
   <main>
-    <TheWelcome />
+    <HomeView />
   </main>
 </template>
 
