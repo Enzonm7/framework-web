@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-
+import { searchMet } from '@/services/metMuseum';
 
 const featuredArtworks = ref([])
 const isLoading = ref(true)
