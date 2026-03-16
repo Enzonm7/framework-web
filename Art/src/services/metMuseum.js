@@ -21,9 +21,7 @@ export async function searchMet(query, limit = 10) {
         const limitedIDs = objectIDs.slice(0, limit)
         const detailPromises = limitedIDs.map(id => metApi.get(`/objects/${id}`))
         const results = await Promise.allSettled(detailPromises)
-        return results
-        .filter(result => result.status === 'fulfilled')
-        .map(result => normalizeMetObject(result.value.data))
+        return results.filter(result => result.status === 'fulfilled').map(result => normalizeMetObject(result.value.data))
     } catch (error) {
         console.error('Met Museum API — erreur de recherche :', error.message)
         throw error
