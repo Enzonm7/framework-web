@@ -1,7 +1,7 @@
 // Agrégateur des 3 APIs d'art
 
 import { searchMet } from './metMuseum.js'
-import { searchHarvard } from './harvardArt.js'
+import { searchHarvard } from './harvard.js'
 import { searchEuropeana } from './europeana.js'
 
 const SOURCES = [
@@ -51,7 +51,7 @@ export async function getArtworkDetail(source, id) {
       return getMetDetail(id)
     }
     case 'harvard': {
-      const { getHarvardDetail } = await import('./harvardArt.js')
+      const { getHarvardDetail } = await import('./harvard.js')
       return getHarvardDetail(id)
     }
     case 'europeana': {
