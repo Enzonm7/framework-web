@@ -2,7 +2,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useUserStore } from '../stores/userStore.js'
+import { useUserStore } from '../stores/Users.js'
 
 const props = defineProps({
   artwork: { type: Object, required: true }
