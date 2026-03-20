@@ -26,6 +26,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { getArtworkDetail } from '@/services/artAggregator.js'
 
 const route = useRoute()
 const artwork = ref(null)
@@ -35,24 +36,23 @@ const error = ref(null)
 onMounted(async () => {
   const { source, id } = route.params
   try {
-    if (source === 'met') {
-      const res = await fetch(`https://collectionapi.metmuseum.org/public/collection/v1/objects/${id}`)
-      const data = await res.json()
-      artwork.value = {
-        title: data.title || 'Sans titre',
-        artist: data.artistDisplayName,
-        date: data.objectDate,
-        medium: data.medium,
-        dimensions: data.dimensions,
-        department: data.department,
-        image: data.primaryImage || data.primaryImageSmall,
-        source: 'The Metropolitan Museum of Art'
-      }
-    } else {
-      error.value = `Source inconnue : ${source}`
+    const data = await getArtworkDetail(source, id)
+    artwork.value = {
+      title: data.title || 'Sans titre',
+      artist: data.artist || 'Artiste inconnu',
+      date: data.date || 'Date inconnue',
+      medium: data.medium || '',
+      dimensions: data.dimensions || '',
+      department: data.department || '',
+      image: data.image || data.thumbnail || null,
+      source: data.source || source
     }
   } catch (e) {
-    error.value = 'Erreur lors du chargement de l\'œuvre.'
+    if (e.message.includes('Source inconnue')) {
+      error.value = `Source inconnue : ${source}`
+    } else {
+      error.value = 'Erreur lors du chargement de l\'œuvre.'
+    }
   } finally {
     loading.value = false
   }
