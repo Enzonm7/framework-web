@@ -7,7 +7,11 @@ import NavBar from './components/NavBar.vue';
     <NavBar/>
 
     <main class="main-content">
-      <RouterView/>
+      <RouterView v-slot="{ Component, route }">
+        <Transition name="fade" mode="out-in">
+            <component :is="Component"/>
+        </Transition>
+      </RouterView>
     </main>
 
     <footer class="app-footer">
@@ -37,5 +41,15 @@ import NavBar from './components/NavBar.vue';
   color: #888;
   font-size: 0.85rem;
   border-top: 1px solid var(--color-border);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

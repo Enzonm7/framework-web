@@ -1,16 +1,20 @@
 import { defineStore } from 'pinia'
 import { searchAll } from '../services/artAggregator.js'
 
+const FEATURED_TERMS = [
+  'landscape', 'portrait', 'sculpture', 'mythology',
+  'flower', 'renaissance', 'impressionism', 'abstract'
+]
+
 export const useArtworkStore = defineStore('artwork', {
   state: () => ({
     results: [],
-
+    featuredArtworks: [],     
+    isFeaturedLoading: false,  
     searchQuery: '',
 
     isLoading: false,
-
     errorMessage: '',
-
     filters: {
       source: 'all',  
       period: 'all',
@@ -62,6 +66,24 @@ export const useArtworkStore = defineStore('artwork', {
         console.error('artworkStore — erreur recherche :', error)
       } finally {
         this.isLoading = false
+      }
+    },
+
+    async loadFeaturedArtworks() {
+      this.featuredArtworks = []
+      this.isFeaturedLoading = true
+      try {
+        const randomTerm = FEATURED_TERMS[Math.floor(Math.random() * FEATURED_TERMS.length)]
+        const results = await searchAll(randomTerm)
+        // On mélange et on garde 12 œuvres max avec une image
+        this.featuredArtworks = results
+          .filter(art => art.thumbnail || art.image)
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 12)
+      } catch (error) {
+        console.error('artworkStore — erreur featured :', error)
+      } finally {
+        this.isFeaturedLoading = false
       }
     },
 
