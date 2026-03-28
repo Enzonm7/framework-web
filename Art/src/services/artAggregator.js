@@ -5,42 +5,47 @@ import { searchHarvard } from './harvard.js'
 import { searchEuropeana } from './europeana.js'
 
 const SOURCES = [
-  { name: 'met', label: 'Met Museum', fn: searchMet },
-  { name: 'harvard', label: 'Harvard Art Museums', fn: searchHarvard },
-  { name: 'europeana', label: 'Europeana', fn: searchEuropeana }
+  { name: 'met',       label: 'Met Museum',        fn: searchMet },
+  { name: 'harvard',   label: 'Harvard Art Museums', fn: searchHarvard },
+  { name: 'europeana', label: 'Europeana',           fn: searchEuropeana }
 ]
 
-/** Recherche simultanée sur les 3 APIs et fusionne les résultats. */
-export async function searchAll(query, limitPerSource = 8) {
-  const promises = SOURCES.map(source => source.fn(query, limitPerSource))
-  const results = await Promise.allSettled(promises)
-
+/**
+ * Recherche progressive : appelle le callback dès qu'une API répond,
+ * sans attendre les plus lentes. Retourne aussi la promesse finale.
+ *
+ * @param {string}   query          - Terme de recherche
+ * @param {number}   limitPerSource - Résultats max par source (défaut 5)
+ * @param {Function} onPartialResult - callback(artworks[], sourceName) appelé dès qu'une source répond
+ */
+export async function searchAll(query, limitPerSource = 5, onPartialResult = null) {
   const allArtworks = []
   const sourceStatus = {}
 
-  results.forEach((result, index) => {
-    const source = SOURCES[index]
+  const promises = SOURCES.map(source =>
+    source.fn(query, limitPerSource)
+      .then(results => {
+        const withImages = results.filter(art => art.image || art.thumbnail)
+        sourceStatus[source.name] = { success: true, count: withImages.length }
+        allArtworks.push(...withImages)
 
-    if (result.status === 'fulfilled') {
-      sourceStatus[source.name] = {
-        success: true,
-        count: result.value.length
-      }
-      allArtworks.push(...result.value)
-    } else {
-      sourceStatus[source.name] = {
-        success: false,
-        error: result.reason?.message || 'Erreur inconnue'
-      }
-      console.warn(`${source.label} — échec :`, result.reason?.message)
-    }
-  })
+        // Notifier immédiatement le consommateur
+        if (onPartialResult && withImages.length > 0) {
+          onPartialResult(withImages, source.name)
+        }
+        return withImages
+      })
+      .catch(err => {
+        sourceStatus[source.name] = { success: false, error: err?.message || 'Erreur inconnue' }
+        console.warn(`${source.label} — échec :`, err?.message)
+        return []
+      })
+  )
+
+  await Promise.allSettled(promises)
 
   console.log('Recherche terminée :', sourceStatus)
-
-  const withImages = allArtworks.filter(art => art.image || art.thumbnail)
-
-  return shuffleResults(withImages)
+  return shuffleResults(allArtworks)
 }
 
 /** Récupère le détail d'une œuvre selon sa source. */
