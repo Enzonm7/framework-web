@@ -11,10 +11,16 @@ const artworkStore = useArtworkStore()
 const userStore = useUserStore()
 const searchTerm = ref(artworkStore.searchQuery || '')
 
-// Tags de suggestion pour guider les débutants
+// Tags de suggestion pour guider les débutants avec leurs équivalents en anglais pour de meilleurs résultats
 const SUGGESTION_TAGS = [
-  'Fleurs', 'Paysage', 'Portrait', 'Sculpture',
-  'Mythologie', 'Marine', 'Architecture', 'Danse'
+  { label: 'Fleurs', query: 'Flowers' },
+  { label: 'Paysage', query: 'Landscape' },
+  { label: 'Portrait', query: 'Portrait' },
+  { label: 'Sculpture', query: 'Sculpture' },
+  { label: 'Mythologie', query: 'Mythology' },
+  { label: 'Marine', query: 'Seascape' },
+  { label: 'Architecture', query: 'Architecture' },
+  { label: 'Danse', query: 'Dance' }
 ]
 
 onMounted(() => {
@@ -27,10 +33,21 @@ async function handleSearch(query) {
   await artworkStore.performSearch(query)
 }
 
-async function handleTagClick(tag) {
-  searchTerm.value = query
+async function handleTagClick(tagObject) {
+  // Si le tag cliqué est déjà actif → on désactive (toggle)
+  if (searchTerm.value === tagObject.label) {
+    searchTerm.value = ''
+    artworkStore.searchQuery = '' // Nettoyage au niveau du store aussi
+    artworkStore.clearResults()
+    artworkStore.loadFeaturedArtworks()
+    return
+  }
+
+  // Sinon → on lance la recherche avec ce tag
+  searchTerm.value = tagObject.label
   userStore.incrementSearchCount()
-  await artworkStore.performSearch(query)
+  // On passe le mot en anglais à la fonction performSearch 
+  await artworkStore.performSearch(tagObject.query, tagObject.label)
 }
 
 function handleFilterChange(filterName, value) {
@@ -60,11 +77,12 @@ const isSearchMode = computed(() => !!artworkStore.searchQuery)
         <span class="tags-label">Inspirations :</span>
         <button
           v-for="tag in SUGGESTION_TAGS"
-          :key="tag"
+          :key="tag.label"
           class="tag-btn"
+          :class="{ active: searchTerm === tag.label }"
           @click="handleTagClick(tag)"
         >
-          {{ tag }}
+          {{ tag.label }}
         </button>
       </div>
 
@@ -83,14 +101,21 @@ const isSearchMode = computed(() => !!artworkStore.searchQuery)
         {{ artworkStore.errorMessage }}
       </div>
 
-      <!-- Résultats de recherche -->
+      <!-- Résultats (Recherche OU Sélection du moment filtrée) -->
       <template v-else-if="artworkStore.filteredResults.length > 0">
-        <p class="results-count">
+        <p class="results-count" v-if="artworkStore.searchQuery">
           {{ artworkStore.filteredResults.length }} œuvre(s) trouvée(s)
           <span v-if="artworkStore.hasActiveFilters">
-            ({{ artworkStore.totalResults }} au total)
+            (sur {{ artworkStore.totalResults }})
           </span>
         </p>
+        <p class="featured-label" v-else> 
+          Sélection du moment
+          <span v-if="artworkStore.hasActiveFilters" class="filter-count-info">
+             (Mise à jour selon vos filtres)
+          </span>
+        </p>
+        
         <div class="results-grid">
           <ArtworkCard
             v-for="artwork in artworkStore.filteredResults"
@@ -100,30 +125,16 @@ const isSearchMode = computed(() => !!artworkStore.searchQuery)
         </div>
       </template>
 
-      <!-- Aucun résultat après recherche -->
+      <!-- Aucun résultat après recherche (ou après un filtre trop strict sur la sélection) -->
       <div
-        v-else-if="artworkStore.searchQuery && !artworkStore.isLoading"
+        v-else-if="!artworkStore.isLoading"
         class="empty-state"
       >
-        <p>Aucune œuvre trouvée pour « {{ artworkStore.searchQuery }} ».</p>
-        <p>Essayez avec d'autres termes : <em>Monet, sculpture, portrait…</em></p>
+        <p v-if="artworkStore.searchQuery">Aucune œuvre trouvée pour « {{ artworkStore.searchQuery }} ».</p>
+        <p v-else>Aucune œuvre de la sélection du moment ne correspond à ces filtres.</p>
+        <p v-if="artworkStore.hasActiveFilters">Essayez de <em>réinitialiser vos filtres</em> ou d'en utiliser de moins stricts.</p>
+        <p v-else>Essayez avec d'autres termes : <em>Monet, sculpture, portrait…</em></p>
       </div>
-
-      <!-- État initial : featured artworks -->
-      <template v-else>
-        <LoadingIcon v-if="artworkStore.isFeaturedLoading" />
-
-        <template v-else-if="artworkStore.featuredArtworks.length > 0">
-          <p class="featured-label"> Sélection du moment</p>
-          <div class="results-grid">
-            <ArtworkCard
-              v-for="artwork in artworkStore.featuredArtworks"
-              :key="`featured-${artwork.source}-${artwork.id}`"
-              :artwork="artwork"
-            />
-          </div>
-        </template>
-      </template>
     </section>
   </div>
 </template>
@@ -170,6 +181,13 @@ const isSearchMode = computed(() => !!artworkStore.searchQuery)
   border-color: var(--color-accent);
   color: #fff;
   transform: translateY(-1px);
+}
+
+.tag-btn.active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+  box-shadow: 0 0 0 2px rgba(var(--color-accent-rgb, 59, 93, 138), 0.2);
 }
 
 /* Résultats */

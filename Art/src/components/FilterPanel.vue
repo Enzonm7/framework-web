@@ -28,6 +28,15 @@ const periodOptions = [
   { value: 'contemporary', label: 'Contemporain (1900+)' }
 ]
 
+const typeOptions = [
+  { value: 'all', label: 'Tous les types' },
+  { value: 'painting', label: 'Peinture' },
+  { value: 'sculpture', label: 'Sculpture' },
+  { value: 'photograph', label: 'Photographie' },
+  { value: 'print', label: 'Gravure / Estampe' },
+  { value: 'drawing', label: 'Dessin' },
+  { value: 'other', label: 'Autre' }
+]
 
 function onFilterChange(filterName, event) {
   emit('filter-change', filterName, event.target.value)
@@ -69,6 +78,25 @@ function onFilterChange(filterName, event) {
         >
           <option
             v-for="option in periodOptions"
+            :key="option.value"
+            :value="option.value"
+          >
+            {{ option.label }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="filter-type" class="filter-label">Type</label>
+        <select
+          id="filter-type"
+          class="input-field filter-select"
+          :value="filters.type"
+          @change="onFilterChange('type', $event)"
+          aria-label="Filtrer par type d'œuvre"
+        >
+          <option
+            v-for="option in typeOptions"
             :key="option.value"
             :value="option.value"
           >

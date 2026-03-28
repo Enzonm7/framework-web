@@ -5,6 +5,8 @@ import { searchAll } from '@/services/artAggregator';
 const featuredArtworks = ref([])
 const isLoading = ref(true)
 const errorMessage = ref('')
+const flippedCards = ref(new Set())
+
 
 const hasFeatured = computed(() => featuredArtworks.value.length > 0)
 
@@ -20,6 +22,18 @@ onMounted(async () => {
     }
     
 })
+
+function toggleFlip(artworkId) {
+  if (flippedCards.value.has(artworkId)) {
+    flippedCards.value.delete(artworkId)
+  } else {
+    flippedCards.value.add(artworkId)
+  }
+}
+
+function isFlipped(artworkId) {
+  return flippedCards.value.has(artworkId)
+}
 </script>
 
 <template>
@@ -51,16 +65,25 @@ onMounted(async () => {
                     v-for="artwork in featuredArtworks"
                     :key="artwork.id"
                     class="featured-card"
+                    :class="{ flipped: isFlipped(artwork.id) }"
+                    @click="toggleFlip(artwork.id)"
                 >
-                    <img 
-                        :src="artwork.image || artwork.thumbnail" 
+                    <!-- Face avant : l'image -->
+                    <div class="card-face card-front">
+                      <img
+                        :src="artwork.image || artwork.thumbnail"
                         :alt="artwork.title || 'Œuvre sans titre'"
                         class="featured-image"
                         loading="lazy"
-                    />
-                    <div class="featured-info">
-                        <h3>{{ artwork.title || 'Sans titre' }}</h3>
-                        <p>{{ artwork.artist || 'Artiste inconnu' }}</p>
+                      />
+                    </div>
+
+                    <!-- Face arrière : les informations -->
+                    <div class="card-face card-back">
+                      <h3>{{ artwork.title || 'Sans titre' }}</h3>
+                      <p class="back-artist">{{ artwork.artist || 'Artiste inconnu' }}</p>
+                      <p class="back-date">{{ artwork.date || 'Date inconnue' }}</p>
+                      <p class="back-source">{{ artwork.source }}</p>
                     </div>
                 </div>
             </div>
@@ -73,18 +96,18 @@ onMounted(async () => {
         <section class="sources-section" aria-label="Nos sources">
             <h2>Trois musées, une plateforme</h2>
             <div class="sources-grid">
-                <div class="source-card">
+                <a href="https://www.metmuseum.org/" target="_blank" rel="noopener noreferrer" class="source-card">
                     <h3>Met Museum</h3>
                     <p>Plus de 470 000 œuvres du Metropolitan Museum of Art de New York.</p>
-                </div>
-                <div class="source-card"> 
+                </a>
+                <a href="https://harvardartmuseums.org/" target="_blank" rel="noopener noreferrer" class="source-card"> 
                     <h3>Harvard Art Museums</h3>
                     <p>Les collections des musées d'art de l'Université Harvard.</p>
-                </div>
-                <div class="source-card">
+                </a>
+                <a href="https://www.europeana.eu/" target="_blank" rel="noopener noreferrer" class="source-card">
                     <h3>Europeana</h3>
                     <p>Le patrimoine culturel européen numérisé et accessible à tous.</p>
-                </div>
+                </a>
             </div>
         </section>
     </div>
@@ -150,12 +173,52 @@ onMounted(async () => {
   gap: 1.5rem;
 }
 
+/* --- Carte flip 3D --- */
 .featured-card {
-  background: #fff;
+  position: relative;
+  height: 280px;
+  perspective: 800px;
+  cursor: pointer;
+}
+
+.card-face {
+  position: absolute;
+  inset: 0;
   border-radius: 8px;
   overflow: hidden;
+  backface-visibility: hidden;
+  transition: transform 0.6s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Face avant : visible par défaut */
+.card-front {
+  transform: rotateY(0deg);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Face arrière : cachée par défaut, retournée à 180° */
+.card-back {
+  transform: rotateY(180deg);
+  background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 1.5rem;
+  gap: 0.5rem;
+  border: 1px solid var(--color-border);
+}
+
+/* Quand la carte est flipped : on inverse les deux faces */
+.featured-card.flipped .card-front {
+  transform: rotateY(-180deg);
+}
+
+.featured-card.flipped .card-back {
+  transform: rotateY(0deg);
 }
 
 .featured-card:hover {
@@ -165,21 +228,48 @@ onMounted(async () => {
 
 .featured-image {
   width: 100%;
-  height: 200px;
+  height: 100%;
   object-fit: cover;
 }
 
 .featured-info {
   padding: 0.75rem;
+  background: #fff;
 }
 
 .featured-info h3 {
   font-size: 0.9rem;
-  margin-bottom: 0.25rem;
-  /* Tronquer les titres trop longs */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Styles de la face arrière */
+.card-back h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.back-artist {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.back-date {
+  font-size: 0.8rem;
+  color: #999;
+}
+
+.back-source {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-accent);
+  font-weight: 600;
 }
 
 .featured-info p {
@@ -199,6 +289,16 @@ onMounted(async () => {
   padding: 1.5rem;
   border-radius: 8px;
   border: 1px solid var(--color-border);
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.source-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: var(--color-accent);
 }
 
 .source-card h3 {
