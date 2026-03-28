@@ -1,26 +1,16 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { searchAll } from '@/services/artAggregator';
+import { useArtworkStore } from '@/stores/Artwork';
 
-const featuredArtworks = ref([])
-const isLoading = ref(true)
-const errorMessage = ref('')
+const artworkStore = useArtworkStore()
 const flippedCards = ref(new Set())
 
-
+const featuredArtworks = computed(() => artworkStore.featuredArtworks)
+const isLoading = computed(() => artworkStore.isFeaturedLoading)
 const hasFeatured = computed(() => featuredArtworks.value.length > 0)
 
-onMounted(async () => {
-    try {
-        const results = await searchAll('impressionism', 15)
-        featuredArtworks.value = results.slice(0, 10)
-    } catch (error) {
-        errorMessage.value = 'Impossible de charger les œuvres vedettes.'
-        console.error('HomeView — erreur chargement :', error)
-    }   finally {
-        isLoading.value = false
-    }
-    
+onMounted(() => {
+    artworkStore.loadFeaturedArtworks()
 })
 
 function toggleFlip(artworkId) {
@@ -52,15 +42,15 @@ function isFlipped(artworkId) {
         
         <section class="featured-section" aria-label="Œuvres à la une">
             <h2>À la une</h2>
-            <div v-if="isLoading" class="loading-message">
-                Chargement des oeuvres vedettes...
+            <div v-if="isLoading && !hasFeatured" class="loading-message">
+                Chargement des œuvres vedettes...
             </div>
 
-            <div v-else-if="errorMessage" class="error-message">
-                {{ errorMessage }}
+            <div v-else-if="!hasFeatured" class="empty-message">
+                Aucune œuvre vedette disponible pour le moment.
             </div>
 
-            <div v-else-if="hasFeatured" class="featured-grid">
+            <div v-if="hasFeatured" class="featured-grid">
                 <div
                     v-for="artwork in featuredArtworks"
                     :key="artwork.id"
@@ -86,10 +76,6 @@ function isFlipped(artworkId) {
                       <p class="back-source">{{ artwork.source }}</p>
                     </div>
                 </div>
-            </div>
-
-            <div v-else class="empty-message">
-                Aucune œuvre vedette disponible pour le moment.
             </div>
         </section>
 
