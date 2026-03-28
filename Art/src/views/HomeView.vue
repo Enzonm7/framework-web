@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { searchMet } from '@/services/metMuseum';
+import { searchAll } from '@/services/artAggregator';
 
 const featuredArtworks = ref([])
 const isLoading = ref(true)
@@ -10,8 +10,8 @@ const hasFeatured = computed(() => featuredArtworks.value.length > 0)
 
 onMounted(async () => {
     try {
-        const results = await searchMet('impressionism')
-        featuredArtworks.value = results.filter(item => item.image).slice(0, 6)
+        const results = await searchAll('impressionism', 15)
+        featuredArtworks.value = results.slice(0, 10)
     } catch (error) {
         errorMessage.value = 'Impossible de charger les œuvres vedettes.'
         console.error('HomeView — erreur chargement :', error)
@@ -53,7 +53,7 @@ onMounted(async () => {
                     class="featured-card"
                 >
                     <img 
-                        :src="artwork.image" 
+                        :src="artwork.image || artwork.thumbnail" 
                         :alt="artwork.title || 'Œuvre sans titre'"
                         class="featured-image"
                         loading="lazy"

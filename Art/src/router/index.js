@@ -1,6 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-import HomeView from '../views/HomeView.vue'
+import HomeView from '@/views/HomeView.vue'
+import ExploreView from '@/views/ExploreView.vue'
+import ArtworkDetailView from '@/views/ArtworkDetailView.vue'
+import ProfileView from '@/views/ProfileView.vue'
+import NotFoundView from '@/views/NotFoundView.vue'
 
 const routes = [
   {
@@ -11,22 +15,22 @@ const routes = [
   {
     path: '/explore',
     name: 'explore',
-    component: () => import('../views/ExploreView.vue')
+    component: ExploreView
   },
   {
     path: '/artwork/:source/:id',
     name: 'artwork-detail',
-    component: () => import('../views/ArtworkDetailView.vue')
+    component: ArtworkDetailView
   },
   {
     path: '/profile',
     name: 'profile',
-    component: () => import('../views/ProfileView.vue')
+    component: ProfileView
   },
   {
     path: '/:pathMatch(.*)*',
     name: 'not-found',
-    component: () => import('../views/NotFoundView.vue')
+    component: NotFoundView
   }
 ]
 
