@@ -54,14 +54,18 @@ function normalizeHarvardObject(raw) {
     ? raw.people[0].name
     : 'Artiste inconnu'
 
+  const imageUrl = raw.primaryimageurl
+    ? raw.primaryimageurl.replace('http://', 'https://')
+    : null
+
   return {
     id: raw.objectid,
     source: 'harvard',
     title: raw.title || 'Sans titre',
     artist: artist,
     date: raw.dated || 'Date inconnue',
-    image: raw.primaryimageurl || null,
-    thumbnail: raw.primaryimageurl || null,
+    image: imageUrl,
+    thumbnail: imageUrl,
     medium: raw.medium || '',
     department: raw.department || '',
     culture: raw.culture || '',

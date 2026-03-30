@@ -1,17 +1,13 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
-import { useArtworkStore } from '@/stores/Artwork';
+import { computed, onMounted, ref } from 'vue'
+import { searchAll } from '@/services/artAggregator'
 
-const artworkStore = useArtworkStore()
+const featuredArtworks = ref([])
+const isLoading = ref(true)
+const errorMessage = ref('')
 const flippedCards = ref(new Set())
 
-const featuredArtworks = computed(() => artworkStore.featuredArtworks)
-const isLoading = computed(() => artworkStore.isFeaturedLoading)
 const hasFeatured = computed(() => featuredArtworks.value.length > 0)
-
-onMounted(() => {
-    artworkStore.loadFeaturedArtworks()
-})
 
 function toggleFlip(artworkId) {
   if (flippedCards.value.has(artworkId)) {
@@ -24,79 +20,100 @@ function toggleFlip(artworkId) {
 function isFlipped(artworkId) {
   return flippedCards.value.has(artworkId)
 }
+
+onMounted(async () => {
+  try {
+    const results = await searchAll('impressionism', 15)
+    featuredArtworks.value = results.slice(0, 10)
+  } catch (error) {
+    errorMessage.value = 'Impossible de charger les œuvres vedettes.'
+    console.error('HomeView — erreur chargement :', error)
+  } finally {
+    isLoading.value = false
+  }
+})
 </script>
 
 <template>
-    <div class="home-view">
-        <section class="hero" aria-label="Bienvenue sur ArtLens">
-            <h1 class="hero-title">Bienvenue sur <span class="accent">ArtLens</span></h1>
-            <p class="hero-subtitle">
-                Explorez des milliers d'œuvres d'art provenant des plus grands musées du monde. 
-                Met Museum, Harvard Art Museums et Europeana réunis en un seul endroit.
-            </p>
+  <div class="home-view">
+    <section class="hero" aria-label="Bienvenue sur ArtLens">
+      <h1 class="hero-title">Bienvenue sur <span class="accent">ArtLens</span></h1>
+      <p class="hero-subtitle">
+        Explorez des milliers d'œuvres d'art provenant des plus grands musées du monde.
+        Met Museum, Harvard Art Museums et Europeana réunis en un seul endroit.
+      </p>
+      <RouterLink to="/explore" class="cta-button" aria-label="Commencer l'exploration">
+        Explorer les œuvres
+      </RouterLink>
+    </section>
 
-            <RouterLink to="/explore" class="cta-button" aria-label="Commencer l'exploration">
-                Explorer les œuvres
+    <section class="featured-section" aria-label="Œuvres à la une">
+      <h2>À la une</h2>
+
+      <div v-if="isLoading" class="loading-message">
+        Chargement des oeuvres vedettes...
+      </div>
+
+      <div v-else-if="errorMessage" class="error-message">
+        {{ errorMessage }}
+      </div>
+
+      <div v-else-if="hasFeatured" class="featured-grid">
+        <div
+          v-for="artwork in featuredArtworks"
+          :key="artwork.id"
+          class="featured-card"
+          :class="{ flipped: isFlipped(artwork.id) }"
+          @click="toggleFlip(artwork.id)"
+        >
+          <div class="card-face card-front">
+            <img
+              :src="artwork.image || artwork.thumbnail"
+              :alt="artwork.title || 'Œuvre sans titre'"
+              class="featured-image"
+              loading="lazy"
+            />
+          </div>
+
+          <div class="card-face card-back">
+            <h3>{{ artwork.title || 'Sans titre' }}</h3>
+            <p class="back-artist">{{ artwork.artist || 'Artiste inconnu' }}</p>
+            <p class="back-date">{{ artwork.date || 'Date inconnue' }}</p>
+            <p class="back-source">{{ artwork.source }}</p>
+            <RouterLink
+              :to="`/artwork/${artwork.source}/${artwork.id}`"
+              class="back-link"
+              @click.stop
+            >
+              Voir le détail →
             </RouterLink>
-        </section>
-        
-        <section class="featured-section" aria-label="Œuvres à la une">
-            <h2>À la une</h2>
-            <div v-if="isLoading && !hasFeatured" class="loading-message">
-                Chargement des œuvres vedettes...
-            </div>
+          </div>
+        </div>
+      </div>
 
-            <div v-else-if="!hasFeatured" class="empty-message">
-                Aucune œuvre vedette disponible pour le moment.
-            </div>
+      <div v-else class="empty-message">
+        Aucune œuvre vedette disponible pour le moment.
+      </div>
+    </section>
 
-            <div v-if="hasFeatured" class="featured-grid">
-                <div
-                    v-for="artwork in featuredArtworks"
-                    :key="artwork.id"
-                    class="featured-card"
-                    :class="{ flipped: isFlipped(artwork.id) }"
-                    @click="toggleFlip(artwork.id)"
-                >
-                    <!-- Face avant : l'image -->
-                    <div class="card-face card-front">
-                      <img
-                        :src="artwork.image || artwork.thumbnail"
-                        :alt="artwork.title || 'Œuvre sans titre'"
-                        class="featured-image"
-                        loading="lazy"
-                      />
-                    </div>
-
-                    <!-- Face arrière : les informations -->
-                    <div class="card-face card-back">
-                      <h3>{{ artwork.title || 'Sans titre' }}</h3>
-                      <p class="back-artist">{{ artwork.artist || 'Artiste inconnu' }}</p>
-                      <p class="back-date">{{ artwork.date || 'Date inconnue' }}</p>
-                      <p class="back-source">{{ artwork.source }}</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="sources-section" aria-label="Nos sources">
-            <h2>Trois musées, une plateforme</h2>
-            <div class="sources-grid">
-                <a href="https://www.metmuseum.org/" target="_blank" rel="noopener noreferrer" class="source-card">
-                    <h3>Met Museum</h3>
-                    <p>Plus de 470 000 œuvres du Metropolitan Museum of Art de New York.</p>
-                </a>
-                <a href="https://harvardartmuseums.org/" target="_blank" rel="noopener noreferrer" class="source-card"> 
-                    <h3>Harvard Art Museums</h3>
-                    <p>Les collections des musées d'art de l'Université Harvard.</p>
-                </a>
-                <a href="https://www.europeana.eu/" target="_blank" rel="noopener noreferrer" class="source-card">
-                    <h3>Europeana</h3>
-                    <p>Le patrimoine culturel européen numérisé et accessible à tous.</p>
-                </a>
-            </div>
-        </section>
-    </div>
+    <section class="sources-section" aria-label="Nos sources">
+      <h2>Trois musées, une plateforme</h2>
+      <div class="sources-grid">
+        <a href="https://www.metmuseum.org/" target="_blank" rel="noopener noreferrer" class="source-card">
+          <h3>Met Museum</h3>
+          <p>Plus de 470 000 œuvres du Metropolitan Museum of Art de New York.</p>
+        </a>
+        <a href="https://harvardartmuseums.org/" target="_blank" rel="noopener noreferrer" class="source-card">
+          <h3>Harvard Art Museums</h3>
+          <p>Les collections des musées d'art de l'Université Harvard.</p>
+        </a>
+        <a href="https://www.europeana.eu/" target="_blank" rel="noopener noreferrer" class="source-card">
+          <h3>Europeana</h3>
+          <p>Le patrimoine culturel européen numérisé et accessible à tous.</p>
+        </a>
+      </div>
+    </section>
+  </div>
 </template>
 
 <style scoped>
@@ -106,7 +123,6 @@ function isFlipped(artworkId) {
   gap: 3rem;
 }
 
-/* --- Section héro --- */
 .hero {
   text-align: center;
   padding: 3rem 1rem;
@@ -145,7 +161,6 @@ function isFlipped(artworkId) {
   background-color: #3b5d8a;
 }
 
-/* --- Œuvres vedettes --- */
 .featured-section h2,
 .sources-section h2 {
   text-align: center;
@@ -159,7 +174,6 @@ function isFlipped(artworkId) {
   gap: 1.5rem;
 }
 
-/* --- Carte flip 3D --- */
 .featured-card {
   position: relative;
   height: 280px;
@@ -177,14 +191,12 @@ function isFlipped(artworkId) {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-/* Face avant : visible par défaut */
 .card-front {
   transform: rotateY(0deg);
   display: flex;
   flex-direction: column;
 }
 
-/* Face arrière : cachée par défaut, retournée à 180° */
 .card-back {
   transform: rotateY(180deg);
   background: var(--color-surface);
@@ -198,18 +210,12 @@ function isFlipped(artworkId) {
   border: 1px solid var(--color-border);
 }
 
-/* Quand la carte est flipped : on inverse les deux faces */
 .featured-card.flipped .card-front {
   transform: rotateY(-180deg);
 }
 
 .featured-card.flipped .card-back {
   transform: rotateY(0deg);
-}
-
-.featured-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
 .featured-image {
@@ -230,7 +236,6 @@ function isFlipped(artworkId) {
   text-overflow: ellipsis;
 }
 
-/* Styles de la face arrière */
 .card-back h3 {
   font-size: 0.95rem;
   font-weight: 700;
@@ -258,12 +263,23 @@ function isFlipped(artworkId) {
   font-weight: 600;
 }
 
-.featured-info p {
-  font-size: 0.8rem;
-  color: #777;
+.back-link {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--color-accent);
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0.3rem 0.8rem;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  transition: background 0.2s, color 0.2s;
 }
 
-/* --- Sources --- */
+.back-link:hover {
+  background: var(--color-accent);
+  color: #fff;
+}
+
 .sources-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -297,7 +313,6 @@ function isFlipped(artworkId) {
   line-height: 1.5;
 }
 
-/* --- Messages d'état --- */
 .loading-message,
 .error-message,
 .empty-message {
@@ -310,7 +325,6 @@ function isFlipped(artworkId) {
   color: #c0392b;
 }
 
-/* --- Responsive --- */
 @media (max-width: 600px) {
   .hero-title {
     font-size: 1.8rem;
@@ -318,6 +332,10 @@ function isFlipped(artworkId) {
 
   .featured-grid {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+
+  .featured-card {
+    height: 240px;
   }
 }
 </style>

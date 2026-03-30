@@ -1,5 +1,3 @@
-// Agrégateur des 3 APIs d'art
-
 import { searchMet } from './metMuseum.js'
 import { searchHarvard } from './harvard.js'
 import { searchEuropeana } from './europeana.js'
@@ -22,25 +20,24 @@ export async function searchAll(query, limitPerSource = 5, onPartialResult = nul
   const allArtworks = []
   const sourceStatus = {}
 
-  const promises = SOURCES.map(source =>
-    source.fn(query, limitPerSource)
-      .then(results => {
-        const withImages = results.filter(art => art.image || art.thumbnail)
-        sourceStatus[source.name] = { success: true, count: withImages.length }
-        allArtworks.push(...withImages)
-
-        // Notifier immédiatement le consommateur
-        if (onPartialResult && withImages.length > 0) {
-          onPartialResult(withImages, source.name)
-        }
-        return withImages
-      })
-      .catch(err => {
-        sourceStatus[source.name] = { success: false, error: err?.message || 'Erreur inconnue' }
-        console.warn(`${source.label} — échec :`, err?.message)
-        return []
-      })
-  )
+  const promises = SOURCES.map(source => {
+  const limit = source.name === 'harvard' ? 3 : limitPerSource
+  return source.fn(query, limit)
+    .then(results => {
+      const withImages = results.filter(art => art.image || art.thumbnail)
+      sourceStatus[source.name] = { success: true, count: withImages.length }
+      allArtworks.push(...withImages)
+      if (onPartialResult && withImages.length > 0) {
+        onPartialResult(withImages, source.name)
+      }
+      return withImages
+    })
+    .catch(err => {
+      sourceStatus[source.name] = { success: false, error: err?.message || 'Erreur inconnue' }
+      console.warn(`${source.label} — échec :`, err?.message)
+      return []
+    })
+  })
 
   await Promise.allSettled(promises)
 
