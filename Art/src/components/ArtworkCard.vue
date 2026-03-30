@@ -2,6 +2,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/Users.js'
 
 const props = defineProps({
@@ -9,6 +10,7 @@ const props = defineProps({
 })
 
 const userStore = useUserStore()
+const router = useRouter()
 
 const isFav = computed(() =>
   userStore.isFavorite(props.artwork.source, props.artwork.id)
@@ -25,6 +27,11 @@ const detailRoute = computed(() => ({
 }))
 
 function toggleFavorite() {
+  if (!userStore.isAuthenticated) {
+    alert("Pour ajouter aux favoris, connectez-vous.")
+    router.push({ name: 'login' })
+    return
+  }
   userStore.toggleFavorite(props.artwork)
 }
 </script>
