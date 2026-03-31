@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/Users.js'
 
 const props = defineProps({
@@ -7,6 +8,7 @@ const props = defineProps({
 })
 
 const userStore = useUserStore()
+const router = useRouter()
 const imgError = ref(false)
 
 function onImageError() {
@@ -28,6 +30,10 @@ const detailRoute = computed(() => ({
 }))
 
 function toggleFavorite() {
+  if (!userStore.isAuthenticated) {
+    router.push('/login')
+    return
+  }
   userStore.toggleFavorite(props.artwork)
 }
 </script>

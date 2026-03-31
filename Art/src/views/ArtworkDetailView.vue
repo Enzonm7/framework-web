@@ -65,6 +65,10 @@ const isFav = computed(() => {
 })
 
 function toggleFavorite() {
+  if (!userStore.isAuthenticated) {
+    router.push('/login')
+    return
+  }
   if (artwork.value) {
     userStore.toggleFavorite(artwork.value)
   }

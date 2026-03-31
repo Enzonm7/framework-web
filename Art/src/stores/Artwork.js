@@ -102,22 +102,23 @@ export const useArtworkStore = defineStore('artwork', {
         for (const term of EXPLORE_TERMS) {
           if (this.featuredArtworks.length >= EXPLORE_CAP) break
 
-          await searchAll(term, ITEMS_PER_TERM, (partialResults) => {
-            const newItems = partialResults.filter(art => {
-              if (!art.thumbnail && !art.image) return false
-              const key = `${art.source}-${art.id}`
-              if (seen.has(key)) return false
-              seen.add(key)
-              return true
-            })
-            const remaining = EXPLORE_CAP - this.featuredArtworks.length
-            if (remaining > 0 && newItems.length > 0) {
-              this.featuredArtworks = [
-                ...this.featuredArtworks,
-                ...newItems.slice(0, remaining)
-              ]
-            }
+          const shuffledResults = await searchAll(term, ITEMS_PER_TERM)
+          
+          const newItems = shuffledResults.filter(art => {
+            if (!art.thumbnail && !art.image) return false
+            const key = `${art.source}-${art.id}`
+            if (seen.has(key)) return false
+            seen.add(key)
+            return true
           })
+          
+          const remaining = EXPLORE_CAP - this.featuredArtworks.length
+          if (remaining > 0 && newItems.length > 0) {
+            this.featuredArtworks = [
+              ...this.featuredArtworks,
+              ...newItems.slice(0, remaining)
+            ]
+          }
         }
       } catch (error) {
         console.error('artworkStore — erreur featured :', error)

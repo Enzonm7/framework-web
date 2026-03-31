@@ -83,7 +83,7 @@ function isFlipped(artworkId) {
                         </span>
                     </div>
 
-                    <div class="card-face card-back" @click.stop>
+                    <div class="card-face card-back">
                         <div class="back-content">
                             <h3 class="back-title">{{ artwork.title || 'Sans titre' }}</h3>
                             <p class="back-artist">{{ artwork.artist || 'Artiste inconnu' }}</p>
