@@ -4,10 +4,9 @@ const metApi = axios.create({
     baseURL: 'https://collectionapi.metmuseum.org/public/collection/v1'
 })
 
-// Cache en mémoire avec TTL de 5 minutes
 const CACHE_TTL = 5 * 60 * 1000
-const detailCache = new Map() // objectID -> { data, ts }
-const searchCache = new Map() // query -> { ids: [...], ts }
+const detailCache = new Map()
+const searchCache = new Map()
 
 function isFresh(entry) {
     return entry && (Date.now() - entry.ts < CACHE_TTL)
@@ -15,7 +14,6 @@ function isFresh(entry) {
 
 export async function searchMet(query, limit = 5) {
     try {
-        // Cache de la liste d'IDs (coûteux en réseau même si léger)
         let objectIDs
         const cachedSearch = searchCache.get(query)
         if (isFresh(cachedSearch)) {
@@ -30,10 +28,8 @@ export async function searchMet(query, limit = 5) {
 
         if (objectIDs.length === 0) return []
 
-        // On ne prend que les IDs nécessaires
         const limitedIDs = objectIDs.slice(0, limit)
 
-        // Pour chaque ID : cache individuel ou requête HTTP
         const detailPromises = limitedIDs.map(id => {
             const cached = detailCache.get(id)
             if (isFresh(cached)) {
@@ -78,15 +74,46 @@ function normalizeMetObject(raw) {
     return {
         id: raw.objectID,
         source: 'met',
+
         title: raw.title || 'Sans titre',
         artist: raw.artistDisplayName || 'Artiste inconnu',
+        artistRole: raw.artistRole || '',
+        artistNationality: raw.artistNationality || '',
+        artistBeginDate: raw.artistBeginDate ? raw.artistBeginDate.trim() : '',
+        artistEndDate: raw.artistEndDate ? raw.artistEndDate.trim() : '',
+
         date: raw.objectDate || 'Date inconnue',
+        objectBeginDate: raw.objectBeginDate || null,
+        objectEndDate: raw.objectEndDate || null,
+
         image: raw.primaryImage || raw.primaryImageSmall || null,
         thumbnail: raw.primaryImageSmall || raw.primaryImage || null,
+        additionalImages: raw.additionalImages || [],
+
         medium: raw.medium || '',
+        dimensions: raw.dimensions || '',
+        classification: raw.classification || '',
+
         department: raw.department || '',
         culture: raw.culture || '',
         period: raw.period || '',
+        dynasty: raw.dynasty || '',
+        reign: raw.reign || '',
+
+        country: raw.country || '',
+        city: raw.city || '',
+        region: raw.region || '',
+
+        creditLine: raw.creditLine || '',
+        accessionNumber: raw.accessionNumber || '',
+        accessionYear: raw.accessionYear || '',
+
+        galleryNumber: raw.GalleryNumber || '',
+        repository: raw.repository || '',
+        isHighlight: raw.isHighlight || false,
+        isPublicDomain: raw.isPublicDomain || false,
+
+        tags: raw.tags ? raw.tags.map(t => t.term) : [],
         url: raw.objectURL || ''
     }
 }

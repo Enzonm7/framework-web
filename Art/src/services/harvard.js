@@ -9,7 +9,6 @@ const harvardApi = axios.create({
   }
 })
 
-
 export async function searchHarvard(query, limit = 10) {
   if (!API_KEY) {
     console.warn('Harvard API — clé manquante (VITE_HARVARD_API_KEY)')
@@ -22,12 +21,11 @@ export async function searchHarvard(query, limit = 10) {
         keyword: query,
         size: limit,
         hasimage: 1,
-        fields: 'objectid,title,people,dated,primaryimageurl,classification,medium,department,culture,period,url'
+        fields: 'objectid,title,people,dated,primaryimageurl,classification,medium,technique,department,culture,period,century,url,creditline,accessionyear,images'
       }
     })
 
     const records = response.data.records || []
-
     return records.map(normalizeHarvardObject)
   } catch (error) {
     console.error('Harvard API — erreur de recherche :', error.message)
@@ -50,26 +48,58 @@ export async function getHarvardDetail(objectID) {
 }
 
 function normalizeHarvardObject(raw) {
-  const artist = raw.people && raw.people.length > 0
-    ? raw.people[0].name
-    : 'Artiste inconnu'
+  const firstPerson = raw.people && raw.people.length > 0 ? raw.people[0] : null
+  const artist = firstPerson ? firstPerson.name : 'Artiste inconnu'
 
-  const imageUrl = raw.primaryimageurl
-    ? raw.primaryimageurl.replace('http://', 'https://')
-    : null
+  const allPeople = raw.people
+    ? raw.people.map(p => ({
+        name: p.name || '',
+        role: p.role || '',
+        culture: p.culture || '',
+        birthplace: p.birthplace || '',
+        deathplace: p.deathplace || '',
+        displaydate: p.displaydate || ''
+      }))
+    : []
+
+  const additionalImages = raw.images
+    ? raw.images
+        .map(img => img.baseimageurl)
+        .filter(url => url && url !== raw.primaryimageurl)
+    : []
 
   return {
     id: raw.objectid,
     source: 'harvard',
+
     title: raw.title || 'Sans titre',
     artist: artist,
+    allPeople: allPeople,
+
     date: raw.dated || 'Date inconnue',
-    image: imageUrl,
-    thumbnail: imageUrl,
+    century: raw.century || '',
+
+    image: raw.primaryimageurl || null,
+    thumbnail: raw.primaryimageurl || null,
+    additionalImages: additionalImages,
+
     medium: raw.medium || '',
+    technique: raw.technique || '',
+    dimensions: raw.dimensions || '',
+    classification: raw.classification || '',
+
     department: raw.department || '',
     culture: raw.culture || '',
     period: raw.period || '',
+
+    creditLine: raw.creditline || '',
+    accessionYear: raw.accessionyear || '',
+    copyright: raw.copyright || '',
+
+    description: raw.description || '',
+    labeltext: raw.labeltext || '',
+    provenance: raw.provenance || '',
+
     url: raw.url || ''
   }
 }
