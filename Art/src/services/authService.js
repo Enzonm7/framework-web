@@ -22,6 +22,8 @@ function statsRef(uid) {
   return doc(db, 'users', uid, 'stats', 'global')
 }
 
+// Les IDs Europeana contiennent des slashes (ex: /123/xyz) qui sont invalides
+// dans un chemin de document Firestore. On les remplace par des underscores.
 function favRef(uid, source, id) {
   const key = `${source}_${String(id).replace(/\//g, '_')}`
   return doc(db, 'users', uid, 'favorites', key)
@@ -64,8 +66,10 @@ export const authService = {
     await signOut(auth)
   },
 
-  // Firebase persiste la session automatiquement dans IndexedDB.
-  // onAuthStateChanged se résout immédiatement avec l'état courant.
+  // On ne peut pas utiliser auth.currentUser directement ici : au démarrage,
+  // Firebase n'a pas encore fini de restaurer la session depuis IndexedDB.
+  // onAuthStateChanged garantit qu'on attend ce moment. On l'appelle une seule
+  // fois (unsubscribe immédiatement) pour ne pas créer un listener permanent.
   async getMe() {
     return new Promise((resolve, reject) => {
       const unsubscribe = auth.onAuthStateChanged(user => {
@@ -139,6 +143,9 @@ export const authService = {
     if (type === 'search') {
       await updateDoc(ref, { searchCount: increment(1) })
     } else if (type === 'view') {
+      // sourcesExplored est un tableau des sources visitées (max 3 : met, harvard, europeana).
+      // On lit le document pour vérifier si la source est déjà présente avant de l'ajouter,
+      // car Firestore n'a pas d'opération "ajouter à un Set" nativement.
       const snap    = await getDoc(ref)
       const data    = snap.data() || {}
       const sources = Array.isArray(data.sourcesExplored) ? data.sourcesExplored : []

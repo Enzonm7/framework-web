@@ -37,6 +37,10 @@ export const useUserStore = defineStore('user', {
         // ----------------------------------------------------------------
         //  Initialisation au démarrage de l'app
         // ----------------------------------------------------------------
+        // Appelé au démarrage dans main.js avant le premier rendu.
+        // Stratégie : on essaie de récupérer une session Firebase existante.
+        // Si connecté → on charge depuis Firestore.
+        // Si non connecté → on charge les favoris sauvegardés en localStorage.
         async init() {
             try {
                 const user = await authService.getMe()
@@ -103,9 +107,11 @@ export const useUserStore = defineStore('user', {
         // ----------------------------------------------------------------
         //  Favoris
         // ----------------------------------------------------------------
+        // Double logique selon l'état de connexion :
+        // - Connecté → synchronisation avec Firestore via authService
+        // - Non connecté → stockage local uniquement (localStorage)
         async toggleFavorite(artwork) {
             if (this.user) {
-                // Connecté : synchroniser avec l'API
                 const result = await authService.toggleFavorite(artwork)
                 if (result.isFavorite) {
                     this.favorites.push({
@@ -123,7 +129,6 @@ export const useUserStore = defineStore('user', {
                     if (idx !== -1) this.favorites.splice(idx, 1)
                 }
             } else {
-                // Non connecté : localStorage uniquement
                 const idx = this.favorites.findIndex(
                     f => f.source === artwork.source && String(f.id) === String(artwork.id)
                 )

@@ -8,6 +8,10 @@ const SOURCES = [
   { name: 'europeana', label: 'Europeana',           fn: searchEuropeana }
 ]
 
+// Recherche progressive : les 3 APIs sont appelées en parallèle.
+// Dès qu'une API répond, onPartialResult est appelé immédiatement
+// sans attendre les autres. Ça permet d'afficher les résultats au fur
+// et à mesure dans l'interface plutôt que d'attendre la plus lente.
 export async function searchAll(query, limitPerSource = 5, onPartialResult = null) {
   const allArtworks = []
   const sourceStatus = {}
@@ -15,6 +19,7 @@ export async function searchAll(query, limitPerSource = 5, onPartialResult = nul
   const promises = SOURCES.map(source =>
     source.fn(query, limitPerSource)
       .then(results => {
+        // On filtre les œuvres sans image — inutilisables dans la galerie
         const withImages = results.filter(art => art.image || art.thumbnail)
         sourceStatus[source.name] = { success: true, count: withImages.length }
         allArtworks.push(...withImages)
@@ -25,18 +30,23 @@ export async function searchAll(query, limitPerSource = 5, onPartialResult = nul
         return withImages
       })
       .catch(err => {
+        // Une API en échec ne bloque pas les autres
         sourceStatus[source.name] = { success: false, error: err?.message || 'Erreur inconnue' }
         console.warn(`${source.label} — échec :`, err?.message)
         return []
       })
   )
 
+  // allSettled (et non all) : on attend toutes les APIs même si certaines échouent
   await Promise.allSettled(promises)
 
   console.log('Recherche terminée :', sourceStatus)
   return shuffleResults(allArtworks)
 }
 
+// Récupère le détail complet d'une œuvre selon sa source.
+// L'ID vient de l'URL (toujours une string) mais chaque API attend un type différent :
+// Met Museum attend un number, Harvard et Europeana attendent une string.
 export async function getArtworkDetail(source, id) {
   let fixedId = id
   if (source === 'met') {

@@ -1,5 +1,3 @@
-<!-- LoadingSpinner.vue — Indicateur de chargement -->
-
 <script setup>
 defineProps({
   message: { type: String, default: 'Chargement en cours…' }

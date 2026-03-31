@@ -7,6 +7,8 @@ import NavBar from './components/NavBar.vue';
     <NavBar/>
 
     <main class="main-content">
+      <!-- mode="out-in" : l'ancienne page disparaît complètement avant
+           que la nouvelle apparaisse. Sans ça les deux se superposent. -->
       <RouterView v-slot="{ Component }">
         <Transition name="fade" mode="out-in">
           <component :is="Component"/>

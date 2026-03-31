@@ -93,12 +93,16 @@ export const useArtworkStore = defineStore('artwork', {
     },
 
     async loadFeaturedArtworks() {
+      // Guard : si les œuvres sont déjà chargées (navigation retour), on ne recharge pas.
       if (this.featuredArtworks.length > 0) return
 
       this.isFeaturedLoading = true
+      // seen évite les doublons entre les différents termes de recherche
       const seen = new Set()
 
       try {
+        // On itère sur les termes prédéfinis jusqu'à atteindre EXPLORE_CAP.
+        // Chaque terme appelle les 3 APIs → jusqu'à 30 œuvres par terme.
         for (const term of EXPLORE_TERMS) {
           if (this.featuredArtworks.length >= EXPLORE_CAP) break
 
@@ -127,6 +131,10 @@ export const useArtworkStore = defineStore('artwork', {
       }
     },
 
+    // Les résultats de recherche Europeana sont partiels (version "search").
+    // Cette action charge les détails complets pour chaque œuvre Europeana,
+    // par lots de 5 pour ne pas saturer l'API.
+    // _enriched empêche de refaire la requête si on revient sur la page.
     async enrichEuropeanaDetails() {
       const all = this.searchQuery ? this.results : this.featuredArtworks
       const europeanaArts = all.filter(a => a.source === 'europeana' && !a._enriched)
@@ -141,6 +149,7 @@ export const useArtworkStore = defineStore('artwork', {
         const details = await Promise.all(
           batch.map(a => getEuropeanaDetail(a.id).catch(() => null))
         )
+        // Object.assign modifie l'objet en place — la réactivité Vue détecte le changement
         details.forEach((detail, idx) => {
           if (detail && detail.id) {
             Object.assign(batch[idx], detail, { _enriched: true })
@@ -207,6 +216,8 @@ function deduplicateAndShuffle(artworks) {
   return unique
 }
 
+// Extrait la première année dans une chaîne de date libre ("ca. 1680–1690" → 1680)
+// et la classe dans une période historique approximative.
 function guessPeriod(dateStr) {
   if (!dateStr) return 'unknown'
   const match = dateStr.match(/(\d{4})/)
@@ -218,6 +229,9 @@ function guessPeriod(dateStr) {
   return 'contemporary'
 }
 
+// Détermine le type d'œuvre par mots-clés dans le champ medium.
+// Le medium est une chaîne libre ("Oil on canvas", "Bronze sculpture"…),
+// on cherche donc des sous-chaînes caractéristiques de chaque type.
 function guessType(medium) {
   if (!medium) return 'other'
   const m = medium.toLowerCase()

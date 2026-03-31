@@ -12,9 +12,13 @@ const pinia = createPinia()
 app.use(pinia)
 app.use(router)
 
-// Vérifier la session existante avant le premier rendu
 import { useUserStore } from './stores/Users'
 const userStore = useUserStore()
+
+// On attend que init() soit terminé avant de monter l'app.
+// Sans ça, NavBar afficherait "non connecté" pendant un instant même si
+// l'utilisateur avait une session Firebase active — car Firebase restaure
+// la session de manière asynchrone via IndexedDB.
 userStore.init().finally(() => {
     app.mount('#app')
 })

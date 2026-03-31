@@ -21,16 +21,20 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+  // savedPosition est défini quand l'utilisateur clique sur Précédent/Suivant
+  // du navigateur — on restaure alors la position exacte. Sinon on remonte en haut.
   scrollBehavior(to, from, savedPosition) {
     return savedPosition ?? { top: 0 }
   }
 })
 
-// Rediriger vers /profile si déjà connecté et qu'on essaie d'aller sur /login ou /register
+// Guard : redirige vers /profile si l'utilisateur est déjà connecté
+// et tente d'accéder à /login ou /register.
+// L'import du store est dynamique pour éviter une dépendance circulaire
+// (le router est importé dans main.js avant que Pinia soit prêt).
 router.beforeEach(async (to) => {
   if (to.name !== 'login' && to.name !== 'register') return
 
-  // Import dynamique du store pour éviter les dépendances circulaires
   const { useUserStore } = await import('@/stores/Users')
   try {
     const userStore = useUserStore()

@@ -14,6 +14,8 @@ onMounted(() => {
 })
 
 function toggleFlip(artworkId) {
+  // On crée un nouveau Set au lieu de modifier l'existant.
+  // Vue 3 détecte le changement de référence, pas les mutations internes d'un Set.
   const next = new Set(flippedCards.value)
   if (next.has(artworkId)) {
     next.delete(artworkId)

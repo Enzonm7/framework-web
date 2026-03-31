@@ -85,12 +85,17 @@ function closeLightbox() {
 onMounted(async () => {
   const { source, id } = route.params
   try {
+    // On cherche d'abord l'œuvre dans les données déjà en mémoire (store).
+    // Ça permet d'avoir les infos de base (titre, image) même si l'API détail est lente.
     let listArtwork = null
     const all = [...(artworkStore.featuredArtworks || []), ...(artworkStore.results || [])]
     listArtwork = all.find(a => a.source === source && String(a.id) === String(id))
 
+    // On charge ensuite le détail complet depuis l'API (plus de champs).
     const data = await getArtworkDetail(source, id)
 
+    // Fusion : les données du détail écrasent celles de la liste (priorité au détail),
+    // mais on garde un fallback sur la liste si le détail a des champs vides.
     artwork.value = {
       ...listArtwork,
       ...data,

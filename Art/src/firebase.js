@@ -1,3 +1,6 @@
+// Ce fichier initialise la connexion à Firebase.
+// Les clés ici sont publiques par design (Firebase les expose côté client).
+// La sécurité repose sur les règles Firestore, pas sur le secret de ces clés.
 import { initializeApp } from 'firebase/app'
 import { getAuth }        from 'firebase/auth'
 import { getFirestore }   from 'firebase/firestore'

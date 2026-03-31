@@ -30,6 +30,7 @@ const detailRoute = computed(() => ({
 }))
 
 function toggleFavorite() {
+  // Si non connecté, on redirige vers /login plutôt que d'ignorer le clic
   if (!userStore.isAuthenticated) {
     router.push('/login')
     return

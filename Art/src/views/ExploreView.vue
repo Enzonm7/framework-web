@@ -68,6 +68,10 @@ const currentPage    = computed(() => artworkStore.currentPage)
 const totalPages     = computed(() => artworkStore.totalPages)
 const pageArtworks   = computed(() => artworkStore.paginatedResults ?? [])
 
+// Calcule les boutons de pagination à afficher avec ellipsis intelligents.
+// Exemple pour page 6/20 : [1, …, 4, 5, 6, 7, 8, …, 20]
+// Toujours la première et dernière page + 2 pages autour de la page courante.
+// Les gaps sont remplacés par '…' (chaîne, pas un number → désactivé dans le template).
 const pageButtons = computed(() => {
   const total = totalPages.value
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)

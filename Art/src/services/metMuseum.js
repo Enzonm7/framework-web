@@ -4,9 +4,13 @@ const metApi = axios.create({
     baseURL: 'https://collectionapi.metmuseum.org/public/collection/v1'
 })
 
+// Cache en mémoire pour éviter de répéter les mêmes requêtes pendant la session.
+// L'API Met est lente (une requête par objet) — sans cache, naviguer entre pages
+// ou relancer une recherche identique referait toutes les requêtes.
+// TTL de 5 min : les données musée ne changent pas en temps réel.
 const CACHE_TTL = 5 * 60 * 1000
-const detailCache = new Map()
-const searchCache = new Map()
+const detailCache = new Map() // id → { data, ts }
+const searchCache = new Map() // query → { ids, ts }
 
 function isFresh(entry) {
     return entry && (Date.now() - entry.ts < CACHE_TTL)
@@ -30,6 +34,10 @@ export async function searchMet(query, limit = 5) {
 
         const limitedIDs = objectIDs.slice(0, limit)
 
+        // L'API Met ne retourne que les IDs lors de la recherche.
+        // Il faut faire une requête par objet pour obtenir les détails.
+        // On les lance toutes en parallèle et on gère les erreurs individuellement
+        // pour ne pas bloquer les autres si un objet est inaccessible.
         const detailPromises = limitedIDs.map(id => {
             const cached = detailCache.get(id)
             if (isFresh(cached)) {

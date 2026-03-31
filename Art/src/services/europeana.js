@@ -44,6 +44,10 @@ export async function getEuropeanaDetail(recordID) {
   }
 }
 
+// Les champs DC (Dublin Core) Europeana sont multilingues.
+// Structure : { "en": ["valeur anglaise"], "fr": ["valeur française"], ... }
+// dcFirst : retourne la première valeur trouvée en parcourant les langues par priorité.
+// Si aucune langue prioritaire n'est présente, prend la première valeur disponible.
 function dcFirst(obj) {
   if (!obj) return null
   for (const lang of ['en', 'fr', 'de', 'nl', 'it', 'es', 'pt', 'def', 'und']) {
@@ -53,11 +57,15 @@ function dcFirst(obj) {
   return all[0] || null
 }
 
+// dcAll : retourne toutes les valeurs de toutes les langues, dédupliquées.
+// Utile pour les champs comme dcCreator qui peut avoir plusieurs auteurs.
 function dcAll(obj) {
   if (!obj) return []
   return [...new Set(Object.values(obj).flat().filter(Boolean))]
 }
 
+// Certaines valeurs de créateur incluent un préfixe de langue : "[English]: Monet, Claude"
+// Cette regex supprime ce préfixe parasite.
 function cleanCreator(str) {
   if (!str || typeof str !== 'string') return null
   const cleaned = str.replace(/^\[.*?\]:\s*/, '').trim()
@@ -114,6 +122,10 @@ function normalizeEuropeanaSearch(raw) {
   }
 }
 
+// La Record API Europeana retourne les métadonnées dans deux "proxies" distincts :
+// - providerProxy : données fournies par l'institution d'origine (musée, bibliothèque…)
+// - europeanaProxy : données enrichies/corrigées par Europeana elle-même
+// On préfère toujours les données du provider, avec europeana en fallback.
 function normalizeEuropeanaDetail(raw) {
   if (!raw) return { source: 'europeana', title: 'Sans titre', artist: 'Artiste inconnu' }
 
@@ -193,6 +205,9 @@ function normalizeEuropeanaDetail(raw) {
   const imageUrl = shownBy || objThumb || preview
   const thumbUrl = preview || shownBy || objThumb
 
+  // webResources contient toutes les ressources liées à l'œuvre (images, PDF, audio…).
+  // On filtre pour ne garder que les URLs d'images (extension reconnue)
+  // en excluant celles déjà utilisées comme image principale ou vignette.
   const webResources = aggregation.webResources || []
   const additionalImages = webResources
     .map(r => r.about)
