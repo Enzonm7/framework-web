@@ -93,39 +93,43 @@ export const useArtworkStore = defineStore('artwork', {
     },
 
     async loadFeaturedArtworks() {
-      if (this.featuredArtworks.length > 0) return
+  if (this.featuredArtworks.length > 0) return
 
-      this.isFeaturedLoading = true
-      const seen = new Set()
+  this.isFeaturedLoading = true
+  const seen = new Set()
+  const BATCH = 5
 
-      try {
-        for (const term of EXPLORE_TERMS) {
-          if (this.featuredArtworks.length >= EXPLORE_CAP) break
+  try {
+    for (let i = 0; i < EXPLORE_TERMS.length; i += BATCH) {
+      if (this.featuredArtworks.length >= EXPLORE_CAP) break
 
-          const shuffledResults = await searchAll(term, ITEMS_PER_TERM)
-          
-          const newItems = shuffledResults.filter(art => {
-            if (!art.thumbnail && !art.image) return false
-            const key = `${art.source}-${art.id}`
-            if (seen.has(key)) return false
-            seen.add(key)
-            return true
-          })
-          
-          const remaining = EXPLORE_CAP - this.featuredArtworks.length
-          if (remaining > 0 && newItems.length > 0) {
-            this.featuredArtworks = [
-              ...this.featuredArtworks,
-              ...newItems.slice(0, remaining)
-            ]
-          }
-        }
-      } catch (error) {
-        console.error('artworkStore — erreur featured :', error)
-      } finally {
-        this.isFeaturedLoading = false
+      const batch = EXPLORE_TERMS.slice(i, i + BATCH)
+      const batchResults = await Promise.all(
+        batch.map(term => searchAll(term, ITEMS_PER_TERM).catch(() => []))
+      )
+
+      const newItems = batchResults.flat().filter(art => {
+        if (!art.thumbnail && !art.image) return false
+        const key = `${art.source}-${art.id}`
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+
+      const remaining = EXPLORE_CAP - this.featuredArtworks.length
+      if (remaining > 0 && newItems.length > 0) {
+        this.featuredArtworks = [
+          ...this.featuredArtworks,
+          ...newItems.slice(0, remaining)
+        ]
       }
-    },
+    }
+  } catch (error) {
+    console.error('artworkStore — erreur featured :', error)
+  } finally {
+    this.isFeaturedLoading = false
+  }
+},
 
     async enrichEuropeanaDetails() {
       const all = this.searchQuery ? this.results : this.featuredArtworks
