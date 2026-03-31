@@ -93,43 +93,42 @@ export const useArtworkStore = defineStore('artwork', {
     },
 
     async loadFeaturedArtworks() {
-      // Guard : si les œuvres sont déjà chargées (navigation retour), on ne recharge pas.
       if (this.featuredArtworks.length > 0) return
 
       this.isFeaturedLoading = true
-      // seen évite les doublons entre les différents termes de recherche
       const seen = new Set()
 
       try {
-        // On itère sur les termes prédéfinis jusqu'à atteindre EXPLORE_CAP.
-        // Chaque terme appelle les 3 APIs → jusqu'à 30 œuvres par terme.
         for (const term of EXPLORE_TERMS) {
           if (this.featuredArtworks.length >= EXPLORE_CAP) break
 
-          const shuffledResults = await searchAll(term, ITEMS_PER_TERM)
-          
-          const newItems = shuffledResults.filter(art => {
-            if (!art.thumbnail && !art.image) return false
-            const key = `${art.source}-${art.id}`
-            if (seen.has(key)) return false
-            seen.add(key)
-            return true
-          })
-          
-          const remaining = EXPLORE_CAP - this.featuredArtworks.length
-          if (remaining > 0 && newItems.length > 0) {
-            this.featuredArtworks = [
-              ...this.featuredArtworks,
-              ...newItems.slice(0, remaining)
-            ]
-          }
-        }
-      } catch (error) {
-        console.error('artworkStore — erreur featured :', error)
-      } finally {
-        this.isFeaturedLoading = false
+      const batch = EXPLORE_TERMS.slice(i, i + BATCH)
+      const batchResults = await Promise.all(
+        batch.map(term => searchAll(term, ITEMS_PER_TERM).catch(() => []))
+      )
+
+      const newItems = batchResults.flat().filter(art => {
+        if (!art.thumbnail && !art.image) return false
+        const key = `${art.source}-${art.id}`
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+
+      const remaining = EXPLORE_CAP - this.featuredArtworks.length
+      if (remaining > 0 && newItems.length > 0) {
+        this.featuredArtworks = [
+          ...this.featuredArtworks,
+          ...newItems.slice(0, remaining)
+        ]
       }
-    },
+    }
+  } catch (error) {
+    console.error('artworkStore — erreur featured :', error)
+  } finally {
+    this.isFeaturedLoading = false
+  }
+},
 
     // Les résultats de recherche Europeana sont partiels (version "search").
     // Cette action charge les détails complets pour chaque œuvre Europeana,

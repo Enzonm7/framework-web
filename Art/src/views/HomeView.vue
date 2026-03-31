@@ -70,8 +70,8 @@ function isFlipped(artworkId) {
                     v-for="artwork in featuredArtworks"
                     :key="`${artwork.source}-${artwork.id}`"
                     class="featured-card"
-                    :class="{ flipped: isFlipped(artwork.id) }"
-                    @click="toggleFlip(artwork.id)"
+                    :class="{ flipped: isFlipped(`${artwork.source}-${artwork.id}`) }"
+                    @click="toggleFlip(`${artwork.source}-${artwork.id}`)"
                 >
                     <div class="card-face card-front">
                         <img
