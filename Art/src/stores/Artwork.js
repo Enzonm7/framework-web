@@ -1,99 +1,124 @@
 import { defineStore } from 'pinia'
 import { searchAll } from '../services/artAggregator.js'
 
-const FEATURED_TERMS = [
-  'landscape', 'portrait', 'sculpture', 'mythology',
-  'flower', 'renaissance', 'impressionism', 'abstract'
+const EXPLORE_TERMS = [
+  'portrait',       'landscape',     'mythology',      'flowers',
+  'sculpture',      'impressionism', 'baroque',        'renaissance',
+  'religious',      'animals',       'nude',           'still life',
+  'watercolor',     'drawing',       'architecture',   'marine',
+  'battle',         'dance',         'music',          'city',
+  'ancient',        'medieval',      'expressionism',  'romanticism',
+  'surrealism',     'realism',       'abstract',       'manuscript'
 ]
+
+const ITEMS_PER_TERM = 10
+const EXPLORE_CAP = 600
+const PAGE_SIZE = 24
 
 export const useArtworkStore = defineStore('artwork', {
   state: () => ({
     results: [],
-    featuredArtworks: [],     
-    isFeaturedLoading: false,  
     searchQuery: '',
-
     isLoading: false,
     errorMessage: '',
+
+    featuredArtworks: [],
+    isFeaturedLoading: false,
+
+    currentPage: 1,
+
     filters: {
-      source: 'all',  
+      source: 'all',
       period: 'all',
-      type: 'all' 
+      type: 'all'
     }
   }),
 
   getters: {
-    totalResults(state) {
-      return state.searchQuery ? state.results.length : state.featuredArtworks.length
-    },
-
     filteredResults(state) {
-      let baseArray = state.searchQuery ? state.results : state.featuredArtworks
-      let filtered = [...baseArray]
-      if (state.filters.source !== 'all') {
-        filtered = filtered.filter(art => art.source === state.filters.source)
-      }
-
-      if (state.filters.period !== 'all') {
-        filtered = filtered.filter(art => {
-          const period = guessPeriod(art.date)
-          return period === state.filters.period
-        })
-      }
-
-      if (state.filters.type !== 'all') {
-        filtered = filtered.filter(art => {
-          return guessType(art.medium) === state.filters.type
-        })
-      }
-
-      return filtered
+      const baseList = state.searchQuery ? state.results : state.featuredArtworks
+      return applyFilters(baseList, state.filters)
     },
 
     hasActiveFilters(state) {
-      return Object.values(state.filters).some(value => value !== 'all')
+      return (
+        state.filters.source !== 'all' ||
+        state.filters.period !== 'all' ||
+        state.filters.type !== 'all'
+      )
+    },
+
+    browseTotal(state) {
+      return state.searchQuery ? state.results.length : state.featuredArtworks.length
+    },
+
+    paginatedResults(state) {
+      const start = (state.currentPage - 1) * PAGE_SIZE
+      return this.filteredResults.slice(start, start + PAGE_SIZE)
+    },
+
+    totalPages() {
+      return Math.max(1, Math.ceil(this.filteredResults.length / PAGE_SIZE))
     }
   },
 
   actions: {
-    async performSearch(query) {
-      if (!query || query.trim().length === 0) {
-        return
-      }
-      this.searchQuery = query.trim()
+    setPage(page) {
+      this.currentPage = page
+    },
+
+    async performSearch(query, displayLabel) {
+      this.currentPage = 1
+      this.searchQuery = displayLabel || query
+      this.results = []
       this.isLoading = true
       this.errorMessage = ''
-      this.results = []
 
       try {
-        const allResults = await searchAll(this.searchQuery)
-        this.results = allResults
+        const accumulated = []
+        await searchAll(query, 30, (partialResults) => {
+          accumulated.push(...partialResults)
+          this.results = deduplicateAndShuffle([...accumulated])
+        })
+
+        if (this.results.length === 0) {
+          this.errorMessage = `Aucune œuvre trouvée pour « ${query} ».`
+        }
       } catch (error) {
-        this.errorMessage = 'Erreur lors de la recherche. Veuillez réessayer.'
         console.error('artworkStore — erreur recherche :', error)
+        this.errorMessage = 'Une erreur est survenue. Veuillez réessayer.'
       } finally {
         this.isLoading = false
       }
     },
 
     async loadFeaturedArtworks() {
-      this.featuredArtworks = []
+      if (this.featuredArtworks.length > 0) return
+
       this.isFeaturedLoading = true
+      const seen = new Set()
+
       try {
-        const randomTerm = FEATURED_TERMS[Math.floor(Math.random() * FEATURED_TERMS.length)]
-        const results = await searchAll(randomTerm)
-        // Dédupliquer par combinaison source + id
-        const seen = new Set()
-        this.featuredArtworks = results
-          .filter(art => {
-            if (!art.thumbnail && !art.image) return false
-            const key = `${art.source}-${art.id}`
-            if (seen.has(key)) return false
-            seen.add(key)
-            return true
+        for (const term of EXPLORE_TERMS) {
+          if (this.featuredArtworks.length >= EXPLORE_CAP) break
+
+          await searchAll(term, ITEMS_PER_TERM, (partialResults) => {
+            const newItems = partialResults.filter(art => {
+              if (!art.thumbnail && !art.image) return false
+              const key = `${art.source}-${art.id}`
+              if (seen.has(key)) return false
+              seen.add(key)
+              return true
+            })
+            const remaining = EXPLORE_CAP - this.featuredArtworks.length
+            if (remaining > 0 && newItems.length > 0) {
+              this.featuredArtworks = [
+                ...this.featuredArtworks,
+                ...newItems.slice(0, remaining)
+              ]
+            }
           })
-          .sort(() => Math.random() - 0.5)
-          .slice(0, 12)
+        }
       } catch (error) {
         console.error('artworkStore — erreur featured :', error)
       } finally {
@@ -101,9 +126,32 @@ export const useArtworkStore = defineStore('artwork', {
       }
     },
 
+    async enrichEuropeanaDetails() {
+      const all = this.searchQuery ? this.results : this.featuredArtworks
+      const europeanaArts = all.filter(a => a.source === 'europeana' && !a._enriched)
+      if (europeanaArts.length === 0) return
+
+      // Import dynamique pour éviter les cycles
+      const { getEuropeanaDetail } = await import('../services/europeana.js')
+
+      const batchSize = 5
+      for (let i = 0; i < europeanaArts.length; i += batchSize) {
+        const batch = europeanaArts.slice(i, i + batchSize)
+        const details = await Promise.all(
+          batch.map(a => getEuropeanaDetail(a.id).catch(() => null))
+        )
+        details.forEach((detail, idx) => {
+          if (detail && detail.id) {
+            Object.assign(batch[idx], detail, { _enriched: true })
+          }
+        })
+      }
+    },
+
     setFilter(filterName, value) {
-      if (this.filters.hasOwnProperty(filterName)) {
+      if (Object.prototype.hasOwnProperty.call(this.filters, filterName)) {
         this.filters[filterName] = value
+        this.currentPage = 1
       }
     },
 
@@ -111,25 +159,59 @@ export const useArtworkStore = defineStore('artwork', {
       this.filters.source = 'all'
       this.filters.period = 'all'
       this.filters.type = 'all'
+      this.currentPage = 1
     },
 
-    clearResults() {
+    clearAll() {
       this.results = []
       this.searchQuery = ''
       this.errorMessage = ''
+      this.currentPage = 1
       this.resetFilters()
+    },
+
+    // Legacy
+    clearResults() {
+      this.clearAll()
     }
   }
 })
+
+function applyFilters(list, filters) {
+  let filtered = [...list]
+  if (filters.source !== 'all') {
+    filtered = filtered.filter(art => art.source === filters.source)
+  }
+  if (filters.period !== 'all') {
+    filtered = filtered.filter(art => guessPeriod(art.date) === filters.period)
+  }
+  if (filters.type !== 'all') {
+    filtered = filtered.filter(art => guessType(art.medium) === filters.type)
+  }
+  return filtered
+}
+
+function deduplicateAndShuffle(artworks) {
+  const seen = new Set()
+  const unique = artworks.filter(art => {
+    const key = `${art.source}-${art.id}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+  for (let i = unique.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[unique[i], unique[j]] = [unique[j], unique[i]]
+  }
+  return unique
+}
 
 function guessPeriod(dateStr) {
   if (!dateStr) return 'unknown'
   const match = dateStr.match(/(\d{4})/)
   if (!match) return 'unknown'
-
   const year = parseInt(match[1], 10)
-
-  if (year < 500) return 'ancient'
+  if (year < 500)  return 'ancient'
   if (year < 1500) return 'medieval'
   if (year < 1900) return 'modern'
   return 'contemporary'
@@ -137,37 +219,26 @@ function guessPeriod(dateStr) {
 
 function guessType(medium) {
   if (!medium) return 'other'
-
   const m = medium.toLowerCase()
 
   if (m.includes('oil') || m.includes('acrylic') || m.includes('tempera') ||
       m.includes('watercolor') || m.includes('gouache') || m.includes('peinture') ||
-      m.includes('canvas') || m.includes('fresco')) {
-    return 'painting'
-  }
+      m.includes('canvas') || m.includes('fresco')) return 'painting'
 
   if (m.includes('sculpt') || m.includes('bronze') || m.includes('marble') ||
       m.includes('stone') || m.includes('ceramic') || m.includes('terracotta') ||
-      m.includes('wood') || m.includes('ivory')) {
-    return 'sculpture'
-  }
+      m.includes('wood') || m.includes('ivory')) return 'sculpture'
 
   if (m.includes('photograph') || m.includes('gelatin') || m.includes('daguerreotype') ||
-      m.includes('photo') || m.includes('silver print')) {
-    return 'photograph'
-  }
+      m.includes('photo') || m.includes('silver print')) return 'photograph'
 
   if (m.includes('engrav') || m.includes('etch') || m.includes('lithograph') ||
       m.includes('woodcut') || m.includes('print') || m.includes('gravure') ||
-      m.includes('estampe')) {
-    return 'print'
-  }
+      m.includes('estampe')) return 'print'
 
   if (m.includes('draw') || m.includes('pencil') || m.includes('chalk') ||
       m.includes('charcoal') || m.includes('ink') || m.includes('pastel') ||
-      m.includes('crayon') || m.includes('dessin')) {
-    return 'drawing'
-  }
+      m.includes('crayon') || m.includes('dessin')) return 'drawing'
 
   return 'other'
 }
