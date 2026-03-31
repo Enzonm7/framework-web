@@ -11,20 +11,22 @@ const artworkStore = useArtworkStore()
 const userStore = useUserStore()
 const searchTerm = ref(artworkStore.searchQuery || '')
 
-// Tags de suggestion pour guider les débutants avec leurs équivalents en anglais pour de meilleurs résultats
 const SUGGESTION_TAGS = [
-  { label: 'Fleurs', query: 'Flowers' },
-  { label: 'Paysage', query: 'Landscape' },
-  { label: 'Portrait', query: 'Portrait' },
-  { label: 'Sculpture', query: 'Sculpture' },
-  { label: 'Mythologie', query: 'Mythology' },
-  { label: 'Marine', query: 'Seascape' },
-  { label: 'Architecture', query: 'Architecture' },
-  { label: 'Danse', query: 'Dance' }
+  { label: 'Fleurs',         query: 'Flowers' },
+  { label: 'Paysage',        query: 'Landscape' },
+  { label: 'Portrait',       query: 'Portrait' },
+  { label: 'Sculpture',      query: 'Sculpture' },
+  { label: 'Mythologie',     query: 'Mythology' },
+  { label: 'Marine',         query: 'Seascape' },
+  { label: 'Architecture',   query: 'Architecture' },
+  { label: 'Danse',          query: 'Dance' },
+  { label: 'Renaissance',    query: 'Renaissance' },
+  { label: 'Impressionnisme',query: 'Impressionism' },
 ]
 
-onMounted(() => {
-  artworkStore.loadFeaturedArtworks()
+onMounted(async () => {
+  await artworkStore.loadFeaturedArtworks()
+  await artworkStore.enrichEuropeanaDetails()
 })
 
 async function handleSearch(query) {
@@ -34,19 +36,12 @@ async function handleSearch(query) {
 }
 
 async function handleTagClick(tagObject) {
-  // Si le tag cliqué est déjà actif → on désactive (toggle)
   if (searchTerm.value === tagObject.label) {
-    searchTerm.value = ''
-    artworkStore.searchQuery = '' // Nettoyage au niveau du store aussi
-    artworkStore.clearResults()
-    artworkStore.loadFeaturedArtworks()
+    handleClearAll()
     return
   }
-
-  // Sinon → on lance la recherche avec ce tag
   searchTerm.value = tagObject.label
   userStore.incrementSearchCount()
-  // On passe le mot en anglais à la fonction performSearch 
   await artworkStore.performSearch(tagObject.query, tagObject.label)
 }
 
@@ -58,20 +53,71 @@ function handleResetFilters() {
   artworkStore.resetFilters()
 }
 
+function handleClearAll() {
+  searchTerm.value = ''
+  artworkStore.clearAll()
+}
 
-const isSearchMode = computed(() => !!artworkStore.searchQuery)
+const isLoading      = computed(() => artworkStore.isFeaturedLoading || artworkStore.isLoading)
+const isSearchMode   = computed(() => !!artworkStore.searchQuery)
+const hasActiveState = computed(() => isSearchMode.value || artworkStore.hasActiveFilters)
+
+const filteredCount  = computed(() => artworkStore.filteredResults?.length ?? 0)
+const totalCount     = computed(() => artworkStore.browseTotal ?? 0)
+const currentPage    = computed(() => artworkStore.currentPage)
+const totalPages     = computed(() => artworkStore.totalPages)
+const pageArtworks   = computed(() => artworkStore.paginatedResults ?? [])
+
+const pageButtons = computed(() => {
+  const total = totalPages.value
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const cur = currentPage.value
+  const pages = new Set([1, total])
+  for (let i = Math.max(2, cur - 2); i <= Math.min(total - 1, cur + 2); i++) pages.add(i)
+  const sorted = [...pages].sort((a, b) => a - b)
+  const result = []
+  let prev = 0
+  for (const p of sorted) {
+    if (p - prev > 1) result.push('…')
+    result.push(p)
+    prev = p
+  }
+  return result
+})
+
+function goToPage(page) {
+  if (typeof page !== 'number') return
+  artworkStore.setPage(page)
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
 </script>
 
 <template>
-  <div>
-    <div class="explore-view">
-      <h1 class="page-title">Explorez les œuvres</h1>
+  <div class="explore-view">
 
+    <div class="explore-header">
+      <div class="header-text">
+        <h1 class="page-title">Explorer les œuvres</h1>
+        <p class="page-subtitle">
+          Recherchez parmi des milliers d'œuvres issues du Met Museum, Harvard Art et Europeana.
+        </p>
+      </div>
+
+      <button
+        v-if="hasActiveState"
+        class="btn-clear-all"
+        @click="handleClearAll"
+        title="Effacer la recherche et les filtres — afficher toutes les œuvres"
+      >
+        ✕ Tout effacer
+      </button>
+    </div>
+
+    <div class="search-area">
       <SearchInput
         :model-value="searchTerm"
         @search="handleSearch"
       />
-
 
       <div class="suggestion-tags" aria-label="Suggestions de recherche">
         <span class="tags-label">Inspirations :</span>
@@ -85,56 +131,126 @@ const isSearchMode = computed(() => !!artworkStore.searchQuery)
           {{ tag.label }}
         </button>
       </div>
-
-      <FilterPanel
-        :filters="artworkStore.filters"
-        :has-active-filters="artworkStore.hasActiveFilters"
-        @filter-change="handleFilterChange"
-        @reset-filters="handleResetFilters"
-      />
     </div>
 
-    <section class="results-section" aria-label="Résultats de recherche">
-      <LoadingIcon v-if="artworkStore.isLoading" />
+    <FilterPanel
+      :filters="artworkStore.filters"
+      :has-active-filters="artworkStore.hasActiveFilters"
+      @filter-change="handleFilterChange"
+      @reset-filters="handleResetFilters"
+    />
+
+    <section class="results-section" aria-label="Résultats">
+
+      <div v-if="isLoading" class="results-loading">
+        <LoadingIcon />
+        <p class="loading-text">
+          {{ artworkStore.isFeaturedLoading
+              ? 'Chargement des collections…'
+              : 'Recherche en cours…' }}
+        </p>
+      </div>
 
       <div v-else-if="artworkStore.errorMessage" class="message-error" role="alert">
         {{ artworkStore.errorMessage }}
       </div>
 
-      <!-- Résultats (Recherche OU Sélection du moment filtrée) -->
-      <template v-else-if="artworkStore.filteredResults.length > 0">
-        <p class="results-count" v-if="artworkStore.searchQuery">
-          {{ artworkStore.filteredResults.length }} œuvre(s) trouvée(s)
-          <span v-if="artworkStore.hasActiveFilters">
-            (sur {{ artworkStore.totalResults }})
-          </span>
-        </p>
-        <p class="featured-label" v-else> 
-          Sélection du moment
-          <span v-if="artworkStore.hasActiveFilters" class="filter-count-info">
-             (Mise à jour selon vos filtres)
-          </span>
-        </p>
-        
+      <template v-else-if="filteredCount > 0">
+        <div class="results-header">
+          <div class="results-meta">
+            <template v-if="isSearchMode">
+              <span class="results-count">
+                <strong>{{ filteredCount }}</strong>
+                œuvre{{ filteredCount > 1 ? 's' : '' }}
+                <span v-if="artworkStore.hasActiveFilters" class="results-filtered">
+                  filtrée{{ filteredCount > 1 ? 's' : '' }} sur {{ totalCount }}
+                </span>
+                pour <em>« {{ artworkStore.searchQuery }} »</em>
+              </span>
+            </template>
+            <template v-else>
+              <span class="results-count">
+                <strong>{{ filteredCount }}</strong>
+                œuvre{{ filteredCount > 1 ? 's' : '' }}
+                <span v-if="artworkStore.hasActiveFilters" class="results-filtered">
+                  filtrée{{ filteredCount > 1 ? 's' : '' }} sur {{ totalCount }}
+                </span>
+                <span v-else class="results-label"> — toutes les collections</span>
+              </span>
+            </template>
+          </div>
+
+          <div class="source-legend" aria-hidden="true">
+            <span class="legend-item"><span class="legend-dot dot-met"></span> Met</span>
+            <span class="legend-item"><span class="legend-dot dot-harvard"></span> Harvard</span>
+            <span class="legend-item"><span class="legend-dot dot-europeana"></span> Europeana</span>
+          </div>
+        </div>
+
         <div class="results-grid">
           <ArtworkCard
-            v-for="artwork in artworkStore.filteredResults"
+            v-for="artwork in pageArtworks"
             :key="`${artwork.source}-${artwork.id}`"
             :artwork="artwork"
           />
         </div>
+
+        <nav v-if="totalPages > 1" class="pagination" aria-label="Navigation des pages">
+          <button
+            class="page-btn page-arrow"
+            :disabled="currentPage === 1"
+            @click="goToPage(currentPage - 1)"
+            aria-label="Page précédente"
+          >
+            ←
+          </button>
+
+          <button
+            v-for="p in pageButtons"
+            :key="p"
+            class="page-btn"
+            :class="{ active: p === currentPage, ellipsis: p === '…' }"
+            :disabled="p === '…'"
+            @click="goToPage(p)"
+            :aria-label="p === '…' ? undefined : `Page ${p}`"
+            :aria-current="p === currentPage ? 'page' : undefined"
+          >
+            {{ p }}
+          </button>
+
+          <button
+            class="page-btn page-arrow"
+            :disabled="currentPage === totalPages"
+            @click="goToPage(currentPage + 1)"
+            aria-label="Page suivante"
+          >
+            →
+          </button>
+        </nav>
       </template>
 
-      <!-- Aucun résultat après recherche (ou après un filtre trop strict sur la sélection) -->
-      <div
-        v-else-if="!artworkStore.isLoading"
-        class="empty-state"
-      >
-        <p v-if="artworkStore.searchQuery">Aucune œuvre trouvée pour « {{ artworkStore.searchQuery }} ».</p>
-        <p v-else>Aucune œuvre de la sélection du moment ne correspond à ces filtres.</p>
-        <p v-if="artworkStore.hasActiveFilters">Essayez de <em>réinitialiser vos filtres</em> ou d'en utiliser de moins stricts.</p>
-        <p v-else>Essayez avec d'autres termes : <em>Monet, sculpture, portrait…</em></p>
+      <div v-else-if="!isLoading" class="empty-state">
+        <p class="empty-icon">🔍</p>
+        <p v-if="artworkStore.searchQuery" class="empty-title">
+          Aucune œuvre pour « {{ artworkStore.searchQuery }} »
+        </p>
+        <p v-else class="empty-title">Aucun résultat pour ces filtres</p>
+        <p class="empty-hint" v-if="artworkStore.hasActiveFilters">
+          Essayez de réinitialiser les filtres pour voir plus d'œuvres.
+        </p>
+        <p class="empty-hint" v-else>
+          Essayez : <em>Monet, sculpture, portrait, baroque…</em>
+        </p>
+        <button v-if="hasActiveState" class="btn-clear-all mt" @click="handleClearAll">
+          ✕ Tout effacer et voir toutes les œuvres
+        </button>
       </div>
+
+      <div v-if="artworkStore.isFeaturedLoading && filteredCount > 0" class="loading-more">
+        <LoadingIcon />
+        <span>Chargement de nouvelles œuvres…</span>
+      </div>
+
     </section>
   </div>
 </template>
@@ -143,103 +259,279 @@ const isSearchMode = computed(() => !!artworkStore.searchQuery)
 .explore-view {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.75rem;
 }
+
+.explore-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border-light);
+  flex-wrap: wrap;
+}
+
+.header-text { flex: 1; min-width: 0; }
 
 .page-title {
-  font-size: 1.8rem;
+  font-family: var(--font-heading);
+  font-size: 2rem;
   font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 0.3rem;
 }
 
-/* Tags de suggestion */
+.page-subtitle {
+  color: var(--color-text-secondary);
+  font-size: 0.92rem;
+}
+
+.btn-clear-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1.1rem;
+  background: transparent;
+  border: 1.5px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text-secondary);
+  font-size: 0.83rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+  white-space: nowrap;
+}
+
+.btn-clear-all:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: rgba(123, 53, 34, 0.05);
+}
+
+.btn-clear-all.mt { margin-top: 1rem; }
+
+.search-area {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
 .suggestion-tags {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.45rem;
 }
 
 .tags-label {
-  font-size: 0.85rem;
-  color: var(--color-text-secondary);
-  margin-right: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-right: 0.2rem;
 }
 
 .tag-btn {
-  padding: 0.35rem 0.8rem;
+  padding: 0.3rem 0.8rem;
   border-radius: 999px;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font-size: 0.85rem;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-parchment-light);
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
 }
 
 .tag-btn:hover {
   background: var(--color-accent);
   border-color: var(--color-accent);
-  color: #fff;
+  color: #FFF8F0;
   transform: translateY(-1px);
 }
 
 .tag-btn.active {
   background: var(--color-accent);
   border-color: var(--color-accent);
-  color: #fff;
-  box-shadow: 0 0 0 2px rgba(var(--color-accent-rgb, 59, 93, 138), 0.2);
+  color: #FFF8F0;
+  box-shadow: 0 2px 8px rgba(123, 53, 34, 0.25);
 }
 
-/* Résultats */
-.results-section {
-  min-height: 200px;
+.results-section { min-height: 300px; }
+
+.results-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 4rem;
+}
+
+.loading-text {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border-light);
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .results-count {
+  font-size: 0.9rem;
   color: var(--color-text-secondary);
-  margin-bottom: 1rem;
-  font-size: 0.95rem;
 }
 
-.featured-label {
+.results-count strong {
+  color: var(--color-text);
   font-size: 1rem;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  margin-bottom: 1rem;
 }
+
+.results-count em {
+  color: var(--color-accent);
+  font-style: italic;
+}
+
+.results-filtered { color: var(--color-gold-dark); }
+.results-label    { color: var(--color-text-muted); font-size: 0.85rem; }
+
+.source-legend {
+  display: flex;
+  gap: 0.9rem;
+  align-items: center;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot-met       { background: rgba(120, 40, 20, 0.75); }
+.dot-harvard   { background: rgba(100, 20, 20, 0.75); }
+.dot-europeana { background: rgba(20, 50, 110, 0.75); }
 
 .results-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
 
 .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
-  padding: 3rem 1rem;
+  padding: 4rem 1rem;
+}
+
+.empty-icon  { font-size: 2.5rem; margin-bottom: 1rem; }
+
+.empty-title {
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  margin-bottom: 0.6rem;
+  color: var(--color-text);
+}
+
+.empty-hint { font-size: 0.9rem; color: var(--color-text-muted); }
+.empty-hint em { color: var(--color-accent); font-style: italic; }
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.page-btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 0.6rem;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-parchment-light);
   color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.empty-state p {
-  margin-bottom: 0.5rem;
+.page-btn:hover:not(:disabled):not(.ellipsis) {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #FFF8F0;
 }
 
-.empty-state em {
-  color: var(--color-accent);
+.page-btn.active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #FFF8F0;
+  box-shadow: 0 2px 8px rgba(123, 53, 34, 0.25);
 }
 
-.message-error {
-  color: red;
-  padding: 1rem;
+.page-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.page-btn.ellipsis {
+  border-color: transparent;
+  background: transparent;
+  cursor: default;
+  color: var(--color-text-muted);
+}
+
+.page-arrow {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.loading-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.75rem;
+  margin-top: 1rem;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  font-style: italic;
 }
 
 @media (max-width: 600px) {
   .results-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
   }
-
-  .suggestion-tags {
-    gap: 0.4rem;
-  }
+  .explore-header { flex-direction: column; align-items: flex-start; }
+  .page-title     { font-size: 1.6rem; }
+  .source-legend  { display: none; }
+  .page-btn       { min-width: 32px; height: 32px; font-size: 0.8rem; }
 }
 </style>
