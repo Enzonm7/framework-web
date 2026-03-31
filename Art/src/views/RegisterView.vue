@@ -28,7 +28,7 @@ async function handleRegister() {
         await userStore.register(username.value.trim(), email.value.trim(), password.value)
         router.push('/profile')
     } catch {
-        // userStore.authError est déjà mis à jour par le store
+        // handled by store
     }
 }
 
@@ -135,9 +135,9 @@ function errorMessage() {
 }
 
 .error-banner {
-    background: #fdecea;
-    border: 1px solid #f5c6cb;
-    color: #c0392b;
+    background: #F5E8E8;
+    border: 1px solid rgba(139, 32, 32, 0.25);
+    color: var(--color-error);
     padding: 0.75rem 1rem;
     border-radius: 6px;
     font-size: 0.9rem;
@@ -167,7 +167,8 @@ function errorMessage() {
 
 .auth-form input:focus {
     outline: none;
-    border-color: var(--color-accent);
+    border-color: var(--color-gold);
+    box-shadow: 0 0 0 3px rgba(196, 154, 60, 0.18);
 }
 
 .btn-primary {
@@ -189,7 +190,7 @@ function errorMessage() {
 }
 
 .btn-primary:not(:disabled):hover {
-    background: #3b5d8a;
+    background: var(--color-accent-hover);
 }
 
 .auth-switch {

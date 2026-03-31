@@ -24,14 +24,14 @@ async function handleLogout() {
     <nav class="navbar" aria-label="Navigation principale">
         <div class="navbar-inner">
             <RouterLink to="/" class="navbar-brand" @click="closeMenu">
-                ArtLens
+                <span class="brand-art">Art</span><span class="brand-lens">Lens</span>
             </RouterLink>
 
             <button
                 class="menu-toggle"
                 @click="toggleMenu"
                 :aria-expanded="isMenuOpen"
-                aria-label="Ouvrir le menu de navigation"
+                aria-label="Ouvrir le menu"
             >
                 <span v-if="!isMenuOpen">☰</span>
                 <span v-else>✕</span>
@@ -45,7 +45,7 @@ async function handleLogout() {
                     <RouterLink to="/explore" @click="closeMenu">Explorer</RouterLink>
                 </li>
                 <li>
-                    <RouterLink to="/profile" @click="closeMenu">
+                    <RouterLink to="/profile" @click="closeMenu" class="nav-profile-link">
                         <template v-if="userStore.isAuthenticated">
                             {{ userStore.user.username }}
                         </template>
@@ -58,14 +58,12 @@ async function handleLogout() {
                     </RouterLink>
                 </li>
 
-                <!-- Connecté : bouton de déconnexion -->
                 <li v-if="userStore.isAuthenticated">
                     <button class="navbar-logout" @click="handleLogout">
                         Déconnexion
                     </button>
                 </li>
 
-                <!-- Non connecté : liens connexion / inscription -->
                 <template v-else>
                     <li>
                         <RouterLink to="/login" @click="closeMenu" class="nav-link-auth">
@@ -85,8 +83,8 @@ async function handleLogout() {
 
 <style scoped>
 .navbar {
-    background-color: #fff;
-    border-bottom: 1px solid var(--color-border);
+    background-color: #2A1A0E;
+    border-bottom: 2px solid var(--color-gold-dark);
     position: sticky;
     top: 0;
     z-index: 100;
@@ -96,22 +94,37 @@ async function handleLogout() {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    max-width: 1200px;
+    max-width: 1280px;
     margin: 0 auto;
-    padding: 0.75rem 1rem;
+    padding: 0.8rem 1.5rem;
 }
 
 .navbar-brand {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: var(--color-text);
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    font-style: italic;
     text-decoration: none;
+    letter-spacing: 0.02em;
+    transition: opacity 0.2s;
+}
+
+.navbar-brand:hover {
+    opacity: 0.85;
+    text-decoration: none;
+}
+
+.brand-art {
+    color: var(--color-gold);
+}
+
+.brand-lens {
+    color: var(--color-parchment-light, #FDFAF3);
 }
 
 .navbar-links {
     display: flex;
     list-style: none;
-    gap: 1.5rem;
+    gap: 1.75rem;
     margin: 0;
     padding: 0;
     align-items: center;
@@ -119,77 +132,89 @@ async function handleLogout() {
 
 .navbar-links a {
     text-decoration: none;
-    color: var(--color-text);
-    font-weight: 500;
-    padding: 0.25rem 0;
-    transition: color 0.2s ease;
+    color: #E8DFC8;
+    font-weight: 400;
+    font-size: 0.9rem;
+    letter-spacing: 0.02em;
+    padding: 0.2rem 0;
+    border-bottom: 1.5px solid transparent;
+    transition: color 0.2s ease, border-color 0.2s ease;
 }
 
-.navbar-links a:hover,
+.navbar-links a:hover {
+    color: var(--color-gold-light);
+    border-bottom-color: var(--color-gold-light);
+    text-decoration: none;
+}
+
 .navbar-links a.router-link-active {
-    color: var(--color-accent);
+    color: var(--color-gold);
+    border-bottom-color: var(--color-gold);
 }
 
-/* Bouton de déconnexion stylisé comme un lien */
 .navbar-logout {
     background: none;
     border: none;
-    color: var(--color-text-secondary);
-    font-weight: 500;
-    font-size: inherit;
+    color: #9A8A78;
+    font-weight: 400;
+    font-size: 0.9rem;
     cursor: pointer;
-    padding: 0.25rem 0;
+    padding: 0.2rem 0;
     transition: color 0.2s;
+    letter-spacing: 0.02em;
 }
 
 .navbar-logout:hover {
-    color: #c0392b;
+    color: #D98080;
 }
 
-/* Bouton "S'inscrire" mis en évidence */
 .nav-link-register {
-    padding: 0.35rem 0.85rem !important;
-    background: var(--color-accent);
-    color: #fff !important;
-    border-radius: 6px;
-    font-weight: 600 !important;
-    transition: background 0.2s !important;
+    padding: 0.4rem 1rem !important;
+    background: var(--color-accent) !important;
+    color: #FFF8F0 !important;
+    border-radius: var(--radius-sm) !important;
+    font-weight: 700 !important;
+    border-bottom: none !important;
+    transition: background 0.2s, opacity 0.2s !important;
+    letter-spacing: 0.03em !important;
 }
 
 .nav-link-register:hover {
-    background: #3b5d8a;
-    color: #fff !important;
+    background: var(--color-accent-hover) !important;
+    color: #FFF8F0 !important;
+    border-bottom-color: transparent !important;
 }
 
-/* Badge compteur de favoris */
+.nav-link-auth {
+    color: #C8B99A !important;
+}
+
 .badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--color-accent);
-    color: #fff;
-    font-size: 0.7rem;
+    background-color: var(--color-gold);
+    color: #2A1A0E;
+    font-size: 0.65rem;
     font-weight: 700;
-    min-width: 18px;
-    height: 18px;
+    min-width: 17px;
+    height: 17px;
     border-radius: 9px;
-    padding: 0 5px;
-    margin-left: 4px;
+    padding: 0 4px;
+    margin-left: 5px;
     vertical-align: middle;
 }
 
-/* Bouton hamburger — caché sur desktop */
 .menu-toggle {
     display: none;
     background: none;
     border: none;
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     cursor: pointer;
-    color: var(--color-text);
+    color: var(--color-gold);
 }
 
-/* ── Responsive mobile ── */
-@media (max-width: 600px) {
+@media (max-width: 640px) {
     .menu-toggle {
         display: block;
     }
@@ -202,10 +227,10 @@ async function handleLogout() {
         top: 100%;
         left: 0;
         right: 0;
-        background: #fff;
-        border-bottom: 1px solid var(--color-border);
-        padding: 1rem;
-        gap: 0.75rem;
+        background: #2A1A0E;
+        border-bottom: 2px solid var(--color-gold-dark);
+        padding: 1rem 1.5rem;
+        gap: 0.9rem;
     }
 
     .navbar-links.open {

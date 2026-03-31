@@ -23,7 +23,6 @@ function handleClearFavorites() {
 <template>
     <div class="profile-view">
 
-        <!-- ── Entête utilisateur ─────────────────────────────────── -->
         <section class="user-section" aria-label="Informations du compte">
             <div v-if="userStore.isAuthenticated" class="user-card">
                 <div class="user-avatar" aria-hidden="true">
@@ -50,7 +49,6 @@ function handleClearFavorites() {
             </div>
         </section>
 
-        <!-- ── Statistiques ──────────────────────────────────────── -->
         <section class="stats-section" aria-label="Statistiques de navigation">
             <h2>Statistiques{{ userStore.isAuthenticated ? '' : ' de session' }}</h2>
             <div class="stats-grid">
@@ -73,7 +71,6 @@ function handleClearFavorites() {
             </div>
         </section>
 
-        <!-- ── Favoris ───────────────────────────────────────────── -->
         <section class="favorites-section" aria-label="Mes favoris">
             <div class="favorites-header">
                 <h2>Mes favoris</h2>
@@ -113,7 +110,6 @@ function handleClearFavorites() {
     gap: 2rem;
 }
 
-/* ── Carte utilisateur ── */
 .user-card {
     display: flex;
     align-items: center;
@@ -163,7 +159,6 @@ function handleClearFavorites() {
     margin-left: auto;
 }
 
-/* ── Carte invité ── */
 .guest-card {
     background: var(--color-surface);
     padding: 2rem;
@@ -195,7 +190,6 @@ function handleClearFavorites() {
     justify-content: center;
 }
 
-/* ── Statistiques ── */
 .stats-section h2,
 .favorites-header h2 {
     font-size: 1.3rem;
@@ -218,6 +212,7 @@ function handleClearFavorites() {
 
 .stat-number {
     display: block;
+    font-family: var(--font-heading);
     font-size: 2rem;
     font-weight: 700;
     color: var(--color-accent);
@@ -229,7 +224,6 @@ function handleClearFavorites() {
     margin-top: 0.25rem;
 }
 
-/* ── Favoris ── */
 .favorites-header {
     display: flex;
     justify-content: space-between;
@@ -259,7 +253,6 @@ function handleClearFavorites() {
     margin-top: 0.5rem;
 }
 
-/* ── Boutons ── */
 .btn {
     display: inline-block;
     padding: 0.6rem 1.2rem;
@@ -279,8 +272,8 @@ function handleClearFavorites() {
 }
 
 .btn-primary:hover {
-    background: #3b5d8a;
-    border-color: #3b5d8a;
+    background: var(--color-accent-hover);
+    border-color: var(--color-accent-hover);
 }
 
 .btn-outline {
@@ -291,18 +284,18 @@ function handleClearFavorites() {
 
 .btn-outline:hover {
     background: var(--color-accent);
-    color: #fff;
+    color: #FFF8F0;
 }
 
 .btn-danger {
     background: transparent;
-    color: #c0392b;
-    border-color: #c0392b;
+    color: var(--color-error);
+    border-color: var(--color-error);
 }
 
 .btn-danger:hover {
-    background: #c0392b;
-    color: #fff;
+    background: var(--color-error);
+    color: #FFF8F0;
 }
 
 @media (max-width: 600px) {

@@ -37,7 +37,7 @@ function clearInput() {
         v-model="inputValue"
         type="text"
         class="input-field search-field"
-        placeholder="Rechercher une œuvre, un artiste, un style…"
+        placeholder="Rechercher une œuvre, un artiste, une époque…"
         aria-label="Terme de recherche"
       />
 
@@ -81,20 +81,20 @@ function clearInput() {
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: #999;
-  font-size: 1rem;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
   padding: 0.25rem;
+  transition: color 0.15s;
 }
 
 .clear-btn:hover {
-  color: var(--color-text);
+  color: var(--color-accent);
 }
 
 .search-btn {
   white-space: nowrap;
 }
 
-/* Responsive : sur mobile, le bouton passe en dessous */
 @media (max-width: 480px) {
   .search-form {
     flex-direction: column;

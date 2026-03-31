@@ -3,13 +3,15 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.5rem 1.25rem;
+  padding: 0.55rem 1.4rem;
   border: none;
   border-radius: var(--radius-sm);
-  font-weight: 600;
-  font-size: 0.9rem;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.875rem;
+  letter-spacing: 0.03em;
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.1s ease;
+  transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
 }
 
 .btn:active {
@@ -18,67 +20,79 @@
 
 .btn-primary {
   background-color: var(--color-accent);
-  color: #fff;
+  color: #FFF8F0;
+  box-shadow: 0 2px 6px rgba(123, 53, 34, 0.3);
 }
 
 .btn-primary:hover {
   background-color: var(--color-accent-hover);
+  box-shadow: 0 3px 10px rgba(123, 53, 34, 0.4);
 }
 
 .btn-secondary {
   background-color: transparent;
   color: var(--color-accent);
-  border: 1px solid var(--color-accent);
+  border: 1.5px solid var(--color-accent);
 }
 
 .btn-secondary:hover {
   background-color: var(--color-accent);
-  color: #fff;
+  color: #FFF8F0;
+}
+
+.btn-gold {
+  background-color: var(--color-gold);
+  color: var(--color-text);
+  box-shadow: 0 2px 6px rgba(196, 154, 60, 0.35);
+}
+
+.btn-gold:hover {
+  background-color: var(--color-gold-dark);
 }
 
 .btn-danger {
   background-color: var(--color-error);
-  color: #fff;
+  color: #FFF8F0;
 }
 
 .btn-danger:hover {
-  background-color: #a93226;
+  background-color: #6B1818;
 }
 
 .input-field {
   width: 100%;
-  padding: 0.6rem 0.85rem;
-  border: 1px solid var(--color-border);
+  padding: 0.6rem 0.9rem;
+  border: 1.5px solid var(--color-border);
   border-radius: var(--radius-sm);
-  background: #fff;
+  background: var(--color-parchment-light);
   color: var(--color-text);
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .input-field:focus {
   outline: none;
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 3px rgba(196, 154, 60, 0.18);
 }
 
 .input-field::placeholder {
-  color: #aaa;
+  color: var(--color-text-muted);
 }
 
 .message-error {
   color: var(--color-error);
-  background-color: #fdf0ef;
+  background-color: #F5E8E8;
   padding: 0.75rem 1rem;
   border-radius: var(--radius-sm);
-  border: 1px solid #f5c6cb;
+  border: 1px solid rgba(139, 32, 32, 0.2);
 }
 
 .message-info {
-  color: var(--color-accent);
-  background-color: #eef2f7;
+  color: var(--color-text-secondary);
+  background-color: var(--color-surface);
   padding: 0.75rem 1rem;
   border-radius: var(--radius-sm);
-  border: 1px solid #c8d6e5;
+  border: 1px solid var(--color-border);
 }
 
 .fade-enter-active,
@@ -105,4 +119,20 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border-width: 0;
+}
+
+.ornament {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: var(--color-gold);
+  font-size: 1.1rem;
+}
+
+.ornament::before,
+.ornament::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--color-gold), transparent);
 }

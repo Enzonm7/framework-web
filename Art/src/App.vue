@@ -3,25 +3,31 @@ import NavBar from './components/NavBar.vue';
 </script>
 
 <template id="artlens-app">
-  <div>
+  <div class="app-wrapper">
     <NavBar/>
 
     <main class="main-content">
-      <RouterView v-slot="{ Component, route }">
+      <RouterView v-slot="{ Component }">
         <Transition name="fade" mode="out-in">
-            <component :is="Component"/>
+          <component :is="Component"/>
         </Transition>
       </RouterView>
     </main>
 
     <footer class="app-footer">
-      <p>ArtLens - Projet Framework Web L3 - Issam & Enzo - 2026</p>
+      <div class="footer-inner">
+        <span class="footer-brand">ArtLens</span>
+        <span class="footer-sep">·</span>
+        <span class="footer-info">Projet Framework Web L3 &mdash; Issam &amp; Enzo &mdash; 2026</span>
+        <span class="footer-sep">·</span>
+        <span class="footer-sources">Met Museum · Harvard Art · Europeana</span>
+      </div>
     </footer>
   </div>
 </template>
 
 <style scoped>
-#artlens-app {
+.app-wrapper {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -30,17 +36,36 @@ import NavBar from './components/NavBar.vue';
 .main-content {
   flex: 1;
   width: 100%;
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: 2rem 1.5rem;
 }
 
 .app-footer {
-  text-align: center;
-  padding: 1.5rem;
-  color: #888;
-  font-size: 0.85rem;
   border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+  padding: 1.25rem 1.5rem;
+}
+
+.footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.footer-brand {
+  font-family: var(--font-heading);
+  font-style: italic;
+  color: var(--color-gold-dark);
+  font-size: 0.9rem;
+}
+
+.footer-sep {
+  color: var(--color-border);
 }
 
 .fade-enter-active,

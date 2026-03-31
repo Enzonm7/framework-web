@@ -15,16 +15,16 @@ const emit = defineEmits(['filter-change', 'reset-filters'])
 
 const sourceOptions = [
   { value: 'all', label: 'Toutes les sources' },
-  { value: 'met', label: ' Met Museum' },
-  { value: 'harvard', label: ' Harvard Art' },
-  { value: 'europeana', label: ' Europeana' }
+  { value: 'met', label: 'Met Museum' },
+  { value: 'harvard', label: 'Harvard Art' },
+  { value: 'europeana', label: 'Europeana' }
 ]
 
 const periodOptions = [
   { value: 'all', label: 'Toutes les époques' },
   { value: 'ancient', label: 'Antiquité (< 500)' },
-  { value: 'medieval', label: 'Médiéval (500-1500)' },
-  { value: 'modern', label: 'Moderne (1500-1900)' },
+  { value: 'medieval', label: 'Médiéval (500–1500)' },
+  { value: 'modern', label: 'Moderne (1500–1900)' },
   { value: 'contemporary', label: 'Contemporain (1900+)' }
 ]
 
@@ -48,20 +48,13 @@ function onFilterChange(filterName, event) {
     <div class="filter-row">
       <div class="filter-group">
         <label for="filter-source" class="filter-label">Source</label>
-
         <select
           id="filter-source"
           class="input-field filter-select"
           :value="filters.source"
           @change="onFilterChange('source', $event)"
-          aria-label="Filtrer par source"
         >
-
-          <option
-            v-for="option in sourceOptions"
-            :key="option.value"
-            :value="option.value"
-          >
+          <option v-for="option in sourceOptions" :key="option.value" :value="option.value">
             {{ option.label }}
           </option>
         </select>
@@ -74,55 +67,42 @@ function onFilterChange(filterName, event) {
           class="input-field filter-select"
           :value="filters.period"
           @change="onFilterChange('period', $event)"
-          aria-label="Filtrer par époque"
         >
-          <option
-            v-for="option in periodOptions"
-            :key="option.value"
-            :value="option.value"
-          >
+          <option v-for="option in periodOptions" :key="option.value" :value="option.value">
             {{ option.label }}
           </option>
         </select>
       </div>
 
       <div class="filter-group">
-        <label for="filter-type" class="filter-label">Type</label>
+        <label for="filter-type" class="filter-label">Type d'œuvre</label>
         <select
           id="filter-type"
           class="input-field filter-select"
           :value="filters.type"
           @change="onFilterChange('type', $event)"
-          aria-label="Filtrer par type d'œuvre"
         >
-          <option
-            v-for="option in typeOptions"
-            :key="option.value"
-            :value="option.value"
-          >
+          <option v-for="option in typeOptions" :key="option.value" :value="option.value">
             {{ option.label }}
           </option>
         </select>
       </div>
 
-      <!-- Bouton reset — affiché seulement si des filtres sont actifs -->
       <button
         v-if="hasActiveFilters"
         class="btn btn-secondary reset-btn"
         @click="emit('reset-filters')"
         aria-label="Réinitialiser les filtres"
       >
-        Réinitialiser
+        ✕ Réinitialiser
       </button>
     </div>
-
-    <slot></slot>
   </div>
 </template>
 
 <style scoped>
 .filter-panel {
-  padding: 1rem;
+  padding: 1rem 1.25rem;
   background: var(--color-surface);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
@@ -138,32 +118,33 @@ function onFilterChange(filterName, event) {
 .filter-group {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  min-width: 180px;
+  gap: 0.3rem;
+  flex: 1;
+  min-width: 160px;
 }
 
 .filter-label {
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 700;
   color: var(--color-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.06em;
 }
 
 .filter-select {
-  min-width: 180px;
+  font-size: 0.875rem;
 }
 
 .reset-btn {
   align-self: flex-end;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   padding: 0.5rem 1rem;
+  white-space: nowrap;
 }
 
 @media (max-width: 600px) {
   .filter-row {
     flex-direction: column;
-    align-items: stretch;
   }
 
   .filter-group {
