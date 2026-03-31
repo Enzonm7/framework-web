@@ -1,7 +1,7 @@
 # ArtLens — Explorez les plus grands musées du monde
 
 **Projet Framework Web — L3 Informatique**
-**Enzo NM & Issam B — 2026**
+**Enzo NZENGUE MAYILA & Issam ATRARI — 2026**
 
 ---
 
@@ -170,7 +170,7 @@ VITE_HARVARD_API_KEY=votre_clé_harvard
 VITE_EUROPEANA_API_KEY=votre_clé_europeana
 ```
 
-> Les clés Harvard et Europeana sont gratuites et disponibles sur leurs portails développeurs respectifs. L'API Met Museum ne nécessite pas de clé.
+> Les clés Harvard et Europeana sont gratuites et disponibles sur leurs portails développeurs respectifs. L'API Met Museum ne nécessite pas de clé. Des clés utilisables sont mises à disposition dans le zip sur Icampus.
 
 ### Installation
 
