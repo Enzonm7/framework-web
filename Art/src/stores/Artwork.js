@@ -93,14 +93,15 @@ export const useArtworkStore = defineStore('artwork', {
     },
 
     async loadFeaturedArtworks() {
-      if (this.featuredArtworks.length > 0) return
+  if (this.featuredArtworks.length > 0) return
 
-      this.isFeaturedLoading = true
-      const seen = new Set()
+  this.isFeaturedLoading = true
+  const seen = new Set()
+  const BATCH = 5
 
-      try {
-        for (const term of EXPLORE_TERMS) {
-          if (this.featuredArtworks.length >= EXPLORE_CAP) break
+  try {
+    for (let i = 0; i < EXPLORE_TERMS.length; i += BATCH) {
+      if (this.featuredArtworks.length >= EXPLORE_CAP) break
 
       const batch = EXPLORE_TERMS.slice(i, i + BATCH)
       const batchResults = await Promise.all(
